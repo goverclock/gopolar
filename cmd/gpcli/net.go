@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 )
@@ -26,14 +28,13 @@ func NewCLIEnd() *CLIEnd {
 }
 
 func (ce *CLIEnd) GET(url string) map[string]interface{} {
+	ret := make(map[string]interface{})
 	response, err := ce.client.Get("http://unix" + url)
 	check(err)
-	buf := make([]byte, 1024)
-	response.Body.Read(buf)
-
-	return nil
-}
-
-func (ce *CLIEnd) Quit() {
-	// ce.conn.Close()
+	jsonData, err := io.ReadAll(response.Body)
+	check(err)
+	err = json.Unmarshal(jsonData, &ret)
+	check(err)
+	ret = ret["data"].(map[string]interface{})
+	return ret
 }

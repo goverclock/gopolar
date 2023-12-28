@@ -21,7 +21,6 @@ func setup() {
 func main() {
 	setup()
 	end := NewCLIEnd()
-	defer end.Quit()
 	m := NewUIModel(end)
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		log.Println("fail to setup UI model", err)
