@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -44,18 +45,22 @@ func (ce *CLIEnd) GetTunnelsList() ([]gopolar.Tunnel, error) {
 }
 
 func (ce *CLIEnd) CreateTunnel(name string, source string, dest string) error {
-	type createData struct {
-		Name   string `json:"name"`
-		Source string `json:"source"`
-		Dest   string `json:"dest"`
-	}
-	body := createData{
+	body := gopolar.CreateTunnelBody{
 		Name:   name,
 		Source: source,
 		Dest:   dest,
 	}
 	_, err := ce.POST("/tunnels/create", body)
+	return err
+}
 
+func (ce *CLIEnd) EditTunnel(id int64, newName string, newSource string, newDest string) error {
+	body := gopolar.EditTunnelBody{
+		NewName:   newName,
+		NewSource: newSource,
+		NewDest:   newDest,
+	}
+	_, err := ce.POST("/tunnels/edit/"+strconv.FormatInt(id, 10), body)
 	return err
 }
 
@@ -96,14 +101,14 @@ func (ce *CLIEnd) POST(url string, data interface{}) (map[string]interface{}, er
 	if err != nil {
 		return nil, err
 	}
-	response, err := ce.client.Post("http://unix" + url, "application/json", bytes.NewBuffer(body))
+	response, err := ce.client.Post("http://unix"+url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET %v responses code %v", url, response.StatusCode)
+		return nil, fmt.Errorf("POST %v responses code %v", url, response.StatusCode)
 	}
 
 	jsonData, err := io.ReadAll(response.Body)
@@ -115,7 +120,7 @@ func (ce *CLIEnd) POST(url string, data interface{}) (map[string]interface{}, er
 		return nil, err
 	}
 	if !ret["success"].(bool) {
-		log.Println("fail to GET", ret["err_msg"])
+		log.Println("fail to POST", ret["err_msg"])
 	}
 	ret = ret["data"].(map[string]interface{})
 	return ret, nil

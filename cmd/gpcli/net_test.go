@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -129,11 +130,7 @@ func TestCreateTunnel(t *testing.T) {
 			Data    struct {
 			} `json:"data"`
 		}
-		var request struct {
-			Name   string `json:"name"`
-			Source string `json:"source"`
-			Dest   string `json:"dest"`
-		}
+		request := gopolar.CreateTunnelBody{}
 		ctx.Bind(&request)
 		assert.Equal(name, request.Name)
 		assert.Equal(source, request.Source)
@@ -143,6 +140,44 @@ func TestCreateTunnel(t *testing.T) {
 	})
 
 	err := end.CreateTunnel(name, source, dest)
-	log.Println(err)
+	assert.Equal(nil, err)
+}
+
+func TestEditTunnel(t *testing.T) {
+	assert := assert.New(t)
+
+	targetID := int64(12345)
+	newName := "new created me"
+	newSource := "newhahah:3456"
+	newDest := "newDest:4567"
+	mock_router.POST("/tunnels/edit/:id", func(ctx *gin.Context) {
+		var response struct {
+			Success bool   `json:"success"`
+			ErrMsg  string `json:"err_msg"`
+			Data    struct {
+			} `json:"data"`
+		}
+		request := gopolar.EditTunnelBody{}
+		ctx.Bind(&request)
+		// parse params manually, due to possible gin issue on post params
+		reqUrl := ctx.Request.URL.String()
+		idStr := reqUrl[len("/tunnels/edit/"):]
+		// idStr := ctx.Param("id")	// somehow buggy
+		// log.Println("idStr=", idStr)
+		// log.Println("request.url=", ctx.Request.URL)
+		// log.Println("params=", ctx.Params)
+		recvID, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			t.Log(err)
+		}
+		assert.Equal(targetID, recvID)
+		assert.Equal(newName, request.NewName)
+		assert.Equal(newSource, request.NewSource)
+		assert.Equal(newDest, request.NewDest)
+		response.Success = true
+		ctx.JSON(http.StatusOK, response)
+	})
+
+	err := end.EditTunnel(targetID, newName, newSource, newDest)
 	assert.Equal(nil, err)
 }
