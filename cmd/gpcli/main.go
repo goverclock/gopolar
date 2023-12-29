@@ -14,7 +14,7 @@ func check(e error) {
 }
 
 func setup() {
-	log.SetPrefix("[core]")
+	log.SetPrefix("[cli]")
 	log.SetFlags(0)
 }
 

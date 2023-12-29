@@ -56,7 +56,8 @@ func TestGetGood(t *testing.T) {
 		ctx.JSON(http.StatusOK, response)
 	})
 
-	m := end.GET("/hello")
+	m, err := end.GET("/hello")
+	assert.Equal(nil, err)
 	t.Log(m)
 	assert.Equal(1, len(m))
 	assert.Equal("world", m["hello"])
@@ -65,7 +66,8 @@ func TestGetGood(t *testing.T) {
 func TestGetBad(t *testing.T) {
 	assert := assert.New(t)
 
-	m := end.GET("/notexist")
+	m, err := end.GET("/notexist")
+	assert.NotEqual(nil, err)
 	t.Log(m)
 	assert.Equal(0, len(m))
 }
@@ -112,4 +114,35 @@ func TestGetTunnelsList(t *testing.T) {
 	retList, err := end.GetTunnelsList()
 	assert.Equal(nil, err)
 	assert.Equal(expectList, retList)
+}
+
+func TestCreateTunnel(t *testing.T) {
+	assert := assert.New(t)
+
+	name := "created me"
+	source := "localhost:3456"
+	dest := "localhost:4567"
+	mock_router.POST("/tunnels/create", func(ctx *gin.Context) {
+		var response struct {
+			Success bool   `json:"success"`
+			ErrMsg  string `json:"err_msg"`
+			Data    struct {
+			} `json:"data"`
+		}
+		var request struct {
+			Name   string `json:"name"`
+			Source string `json:"source"`
+			Dest   string `json:"dest"`
+		}
+		ctx.Bind(&request)
+		assert.Equal(name, request.Name)
+		assert.Equal(source, request.Source)
+		assert.Equal(dest, request.Dest)
+		response.Success = true
+		ctx.JSON(http.StatusOK, response)
+	})
+
+	err := end.CreateTunnel(name, source, dest)
+	log.Println(err)
+	assert.Equal(nil, err)
 }
