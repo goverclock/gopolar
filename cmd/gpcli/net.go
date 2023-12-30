@@ -69,8 +69,20 @@ func (ce *CLIEnd) DeleteTunnel(id int64) error {
 	return nil
 }
 
-func (ce *CLIEnd) GET(url string) (map[string]interface{}, error) {
+func bodyToJSON(body io.ReadCloser) (map[string]interface{}, error) {
 	ret := make(map[string]interface{})
+	jsonBytes, err := io.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(jsonBytes, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (ce *CLIEnd) GET(url string) (map[string]interface{}, error) {
 	response, err := ce.client.Get("http://unix" + url)
 	if err != nil {
 		return nil, err
@@ -80,23 +92,18 @@ func (ce *CLIEnd) GET(url string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("GET %v responses code %v", url, response.StatusCode)
 	}
 
-	jsonData, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(jsonData, &ret)
+	ret, err := bodyToJSON(response.Body)
 	if err != nil {
 		return nil, err
 	}
 	if !ret["success"].(bool) {
-		log.Println("fail to GET", ret["err_msg"])
+		log.Println("GET responses with success=false, err_msg=" + ret["err_msg"].(string))
 	}
 	ret = ret["data"].(map[string]interface{})
 	return ret, nil
 }
 
 func (ce *CLIEnd) POST(url string, data interface{}) (map[string]interface{}, error) {
-	ret := make(map[string]interface{})
 	body, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -111,16 +118,12 @@ func (ce *CLIEnd) POST(url string, data interface{}) (map[string]interface{}, er
 		return nil, fmt.Errorf("POST %v responses code %v", url, response.StatusCode)
 	}
 
-	jsonData, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(jsonData, &ret)
+	ret, err := bodyToJSON(response.Body)
 	if err != nil {
 		return nil, err
 	}
 	if !ret["success"].(bool) {
-		log.Println("fail to POST", ret["err_msg"])
+		log.Println("POST responses with success=false, err_msg=" + ret["err_msg"].(string))
 	}
 	ret = ret["data"].(map[string]interface{})
 	return ret, nil
