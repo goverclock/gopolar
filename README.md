@@ -27,17 +27,6 @@ response("data"):
 }
 ```
 
-**GET /about**
-
-Information about gopolar.
-
-```
-response("data"):
-{
-    version string  // e.g. 1.0.0
-}
-```
-
 **POST /tunnels/create**
 
 Create a new tunnel.
@@ -75,3 +64,14 @@ Enable/disable tunnel with ID.
 **DELETE /tunnels/delete/:id**
 
 Delete tunnel with ID.
+
+**GET /about**
+
+Information about gopolar.
+
+```
+response("data"):
+{
+    version string  // e.g. 1.0.0
+}
+```

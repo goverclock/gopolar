@@ -15,3 +15,7 @@ type EditTunnelBody struct {
 	NewSource string `json:"source"`
 	NewDest   string `json:"dest"`
 }
+
+type AboutInfo struct {
+	Version string `json:"version"`
+}

@@ -185,3 +185,76 @@ func TestEditTunnel(t *testing.T) {
 	err := end.EditTunnel(targetID, newName, newSource, newDest)
 	assert.Equal(nil, err)
 }
+
+func TestToggleTunnel(t *testing.T) {
+	assert := assert.New(t)
+
+	targetID := int64(56785)
+	mock_router.POST("/tunnels/toggle/:id", func(ctx *gin.Context) {
+		var response struct {
+			Success bool   `json:"success"`
+			ErrMsg  string `json:"err_msg"`
+			Data    struct {
+			} `json:"data"`
+		}
+		reqUrl := ctx.Request.URL.String()
+		idStr := reqUrl[len("/tunnels/toggle/"):]
+		recvID, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			t.Log(err)
+		}
+		assert.Equal(targetID, recvID)
+		response.Success = true
+		ctx.JSON(http.StatusOK, response)
+	})
+	err := end.ToggleTunnel(targetID)
+	assert.Equal(nil, err)
+}
+
+func TestDeleteTunnel(t *testing.T) {
+	assert := assert.New(t)
+
+	targetID := int64(78967)
+	mock_router.DELETE("/tunnels/delete/:id", func(ctx *gin.Context) {
+		var response struct {
+			Success bool   `json:"success"`
+			ErrMsg  string `json:"err_msg"`
+			Data    struct {
+			} `json:"data"`
+		}
+		reqUrl := ctx.Request.URL.String()
+		idStr := reqUrl[len("/tunnels/delete/"):]
+		recvID, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			t.Log(err)
+		}
+		assert.Equal(targetID, recvID)
+		response.Success = true
+		ctx.JSON(http.StatusOK, response)
+	})
+	err := end.DeleteTunnel(targetID)
+	assert.Equal(nil, err)
+}
+
+func TestGetAboutInfo(t *testing.T) {
+	assert := assert.New(t)
+
+	target := gopolar.AboutInfo{
+		Version: "0.0.1",
+	}
+	mock_router.GET("/about", func(ctx *gin.Context) {
+		var response struct {
+			Success bool   `json:"success"`
+			ErrMsg  string `json:"err_msg"`
+			Data    struct {
+				About gopolar.AboutInfo `json:"about"`
+			} `json:"data"`
+		}
+		response.Data.About = target
+		response.Success = true
+		ctx.JSON(http.StatusOK, response)
+	})
+	ret, err := end.GetAboutInfo()
+	assert.Equal(nil, err)
+	assert.Equal(target, ret)
+}

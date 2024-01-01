@@ -38,9 +38,8 @@ func (ce *CLIEnd) GetTunnelsList() ([]gopolar.Tunnel, error) {
 	if err != nil {
 		return nil, err
 	}
-	tunnelsList := response["tunnels"].([]interface{})
 	ret := []gopolar.Tunnel{}
-	mapstructure.Decode(tunnelsList, &ret)
+	mapstructure.Decode(response["tunnels"], &ret)
 	return ret, nil
 }
 
@@ -69,9 +68,24 @@ func (ce *CLIEnd) EditTunnel(id int64, newName string, newSource string, newDest
 	return err
 }
 
-// TODO
+func (ce *CLIEnd) ToggleTunnel(id int64) error {
+	_, err := ce.POST("/tunnels/toggle/"+strconv.FormatInt(id, 10), nil)
+	return err
+}
+
 func (ce *CLIEnd) DeleteTunnel(id int64) error {
-	return nil
+	_, err := ce.DELETE("/tunnels/delete/" + strconv.FormatInt(id, 10))
+	return err
+}
+
+func (ce *CLIEnd) GetAboutInfo() (gopolar.AboutInfo, error) {
+	ret := gopolar.AboutInfo{}
+	response, err := ce.GET("/about")
+	if err != nil {
+		return ret, err
+	}
+	mapstructure.Decode(response["about"], &ret)
+	return ret, nil
 }
 
 func bodyToJSON(body io.ReadCloser) (map[string]interface{}, error) {
@@ -129,6 +143,34 @@ func (ce *CLIEnd) POST(url string, data interface{}) (map[string]interface{}, er
 	}
 	if !ret["success"].(bool) {
 		log.Println("POST responses with success=false, err_msg=" + ret["err_msg"].(string))
+	}
+	ret = ret["data"].(map[string]interface{})
+	return ret, nil
+}
+
+func (ce *CLIEnd) DELETE(url string) (map[string]interface{}, error) {
+	// mimic of http.Client.Get
+	response, err := func(c *http.Client, url string) (resp *http.Response, err error) {
+		req, err := http.NewRequest("DELETE", url, nil)
+		if err != nil {
+			return nil, err
+		}
+		return c.Do(req)
+	}(&ce.client, "http://unix"+url)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("DELETE %v responses code %v", url, response.StatusCode)
+	}
+
+	ret, err := bodyToJSON(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	if !ret["success"].(bool) {
+		log.Println("DELETE responses with success=false, err_msg=" + ret["err_msg"].(string))
 	}
 	ret = ret["data"].(map[string]interface{})
 	return ret, nil
