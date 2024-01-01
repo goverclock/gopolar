@@ -44,14 +44,19 @@ func (ce *CLIEnd) GetTunnelsList() ([]gopolar.Tunnel, error) {
 	return ret, nil
 }
 
-func (ce *CLIEnd) CreateTunnel(name string, source string, dest string) error {
+// returns ID of the new tunnel
+func (ce *CLIEnd) CreateTunnel(name string, source string, dest string) (uint64, error) {
 	body := gopolar.CreateTunnelBody{
 		Name:   name,
 		Source: source,
 		Dest:   dest,
 	}
-	_, err := ce.POST("/tunnels/create", body)
-	return err
+	response, err := ce.POST("/tunnels/create", body)
+	if err != nil {
+		return 0, err
+	}
+	id := uint64(response["id"].(float64))
+	return id, nil
 }
 
 func (ce *CLIEnd) EditTunnel(id int64, newName string, newSource string, newDest string) error {

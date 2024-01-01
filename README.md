@@ -8,7 +8,7 @@ TCP port forwarding tool.
 
 ```
 type Tunnel struct {
-    id      int64
+    id      uint64
     name    string
     enable  bool
     source  string  // always localhost:xxxx
@@ -48,6 +48,10 @@ body:
     name    string
     source  string
     dest    string
+}
+response("data"):
+{
+    id      uint64
 }
 ```
 

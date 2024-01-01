@@ -123,11 +123,13 @@ func TestCreateTunnel(t *testing.T) {
 	name := "created me"
 	source := "localhost:3456"
 	dest := "localhost:4567"
+	createdTunnelID := uint64(23423)
 	mock_router.POST("/tunnels/create", func(ctx *gin.Context) {
 		var response struct {
 			Success bool   `json:"success"`
 			ErrMsg  string `json:"err_msg"`
 			Data    struct {
+				ID uint64 `json:"id"`
 			} `json:"data"`
 		}
 		request := gopolar.CreateTunnelBody{}
@@ -136,11 +138,13 @@ func TestCreateTunnel(t *testing.T) {
 		assert.Equal(source, request.Source)
 		assert.Equal(dest, request.Dest)
 		response.Success = true
+		response.Data.ID = createdTunnelID
 		ctx.JSON(http.StatusOK, response)
 	})
 
-	err := end.CreateTunnel(name, source, dest)
+	id, err := end.CreateTunnel(name, source, dest)
 	assert.Equal(nil, err)
+	assert.Equal(createdTunnelID, id)
 }
 
 func TestEditTunnel(t *testing.T) {
