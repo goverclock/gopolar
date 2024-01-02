@@ -11,22 +11,25 @@ import (
 )
 
 var (
-	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle  = focusedStyle.Copy()
-	// noStyle      = lipgloss.NewStyle()
-	// helpStyle           = blurredStyle.Copy()
-	// cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	focusedButton       = focusedStyle.Copy().Render("[ Submit ]")
-	blurredButton       = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
+	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("255")).Background(lipgloss.Color("8"))
+	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	focusedButton = focusedStyle.Copy().Render("[ Submit ]")
+	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
+	noStyle       = lipgloss.NewStyle()
+	cursorStyle   = noStyle
 )
 
 type sessionState uint // track which model is focused
 const (
 	tableView sessionState = iota
+	createView
 	editView
 	deleteConfirm
-	pending // waiting for server response, ignore all key messages except for quit
+)
+const (
+	TableHelpMsg  string = "c - CREATE, e - EDIT, d - DELETE, r - RUN/STOP"
+	EditHelpMsg   string = "enter - CONFIRM, esc - CANCEL"
+	DeleteHelpMsg string = "Delete selected tunnel?(Y/n)"
 )
 
 type UIModel struct {
@@ -47,7 +50,7 @@ func NewUIModel(end *CLIEnd) *UIModel {
 	return &UIModel{
 		table:   *NewTableModel(tunnelList),
 		edit:    *NewEditModel(),
-		helpMsg: "e - EDIT, d - DELETE, r - RUN/STOP",
+		helpMsg: TableHelpMsg,
 		end:     end,
 	}
 }
@@ -57,38 +60,54 @@ func (m UIModel) Init() tea.Cmd {
 }
 
 func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	msgv, ok := msg.(tea.KeyMsg) // only care about key message
+	if !ok {
+		return m, nil
+	}
+	s := msgv.String()
+
 	var cmd tea.Cmd
 	// main model
-	switch msgv := msg.(type) {
-	case tea.KeyMsg: // ignore all other message types
-		switch msgv.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-		case "e":
-			m.state = editView
-			m.helpMsg = "enter - CONFIRM, esc - CANCEL"
-			return m, nil
-		case "d":
-			m.state = deleteConfirm
-			m.helpMsg = "Delete tunnel " + m.table.SelectedRow()[0] + " ?(Y/n)"
-			return m, nil
-		case "r":
-			return m, tea.Batch(
-				tea.Println("run/stop ", m.table.SelectedRow()[0]),
-			)
-		case "esc":
-			m.state = tableView
-			m.helpMsg = "e - EDIT, d - DELETE, r - RUN/STOP"
-			return m, nil
-		}
+	switch s {
+	case "esc":
+		m.state = tableView
+		m.helpMsg = TableHelpMsg
+		return m, nil
 	}
 
 	// else send msg to sub model
 	switch m.state {
 	case tableView:
+		switch s {
+		case "q", "ctrl+c":
+			return m, tea.Quit
+		case "c":
+			m.state = createView
+			m.helpMsg = EditHelpMsg
+			return m, nil
+		case "e":
+			m.state = editView
+			m.helpMsg = EditHelpMsg
+			vals := m.table.SelectedRow()
+			m.edit.SetValue(vals[1], vals[2], vals[3])
+			return m, nil
+		case "d":
+			m.state = deleteConfirm
+			m.helpMsg = DeleteHelpMsg
+			return m, nil
+		case "r":
+			return m, tea.Batch(
+				tea.Println("run/stop ", m.table.SelectedRow()[0]),
+			)
+		}
 		m.table, cmd = m.table.Update(msg)
 	case editView:
 		m.edit, cmd = m.edit.Update(msg)
+		if cmd != nil { // submitted
+			name, source, dest := m.edit.GetInput()
+			m.end.EditTunnel(123, name, source, dest)
+
+		}
 	}
 
 	return m, cmd
