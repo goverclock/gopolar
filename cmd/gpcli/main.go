@@ -7,14 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 func setup() {
-	log.SetPrefix("[cli]")
+	log.SetPrefix("[gpcli]")
 	log.SetFlags(0)
 }
 

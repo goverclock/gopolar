@@ -1,48 +1,54 @@
 package main
 
 import (
-	"context"
-	"net"
-	"net/http"
+	"fmt"
+	"log"
+	"os"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+var (
+	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	cursorStyle  = focusedStyle.Copy()
+	// noStyle      = lipgloss.NewStyle()
+	// helpStyle           = blurredStyle.Copy()
+	// cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	focusedButton       = focusedStyle.Copy().Render("[ Submit ]")
+	blurredButton       = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
+)
+
+type sessionState uint // track which model is focused
+const (
+	tableView sessionState = iota
+	editView
+	deleteConfirm
+	pending // waiting for server response, ignore all key messages except for quit
+)
+
 type UIModel struct {
-	tunnelsTable table.Model
-	end          *CLIEnd
+	table   table.Model
+	edit    EditModel // multiple textinputs
+	helpMsg string
+
+	state sessionState
+	end   *CLIEnd
 }
 
 func NewUIModel(end *CLIEnd) *UIModel {
-	columns := []table.Column{
-		{Title: "ID", Width: 4},
-		{Title: "Name", Width: 10},
-		{Title: "Source", Width: 8},
-		{Title: "Dest", Width: 8},
+	tunnelList, err := end.GetTunnelsList()
+	if err != nil {
+		log.Println("fail to get tunnel list, is gopolar daemon running?")
+		os.Exit(1)
 	}
-	rows := []table.Row{
-		{"1", "http", "8080", "9999"},
-		{"2", "random", "2345", "2222"},
-		{"3", "db", "3306", "7777"},
-	}
-	tb := table.New(
-		table.WithColumns(columns),
-		table.WithRows(rows),
-		table.WithFocused(true),
-		table.WithHeight(10),
-	)
-	s := table.DefaultStyles()
-	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("255")).
-		Background(lipgloss.Color("8")).
-		Bold(false)
-	tb.SetStyles(s)
-
 	return &UIModel{
-		tunnelsTable: tb,
-		end:          end,
+		table:   *NewTableModel(tunnelList),
+		edit:    *NewEditModel(),
+		helpMsg: "e - EDIT, d - DELETE, r - RUN/STOP",
+		end:     end,
 	}
 }
 
@@ -52,35 +58,47 @@ func (m UIModel) Init() tea.Cmd {
 
 func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	// main model
 	switch msgv := msg.(type) {
 	case tea.KeyMsg: // ignore all other message types
 		switch msgv.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
-		case "enter":
-			httpc := http.Client{
-				Transport: &http.Transport{
-					DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-						return net.Dial("unix", "/tmp/gopolar.sock")
-					},
-				},
-			}
-
-			response, err := httpc.Get("http://unix" + "/hello")
-			check(err)
-			buf := make([]byte, 10)
-			response.Body.Read(buf)
-
+		case "e":
+			m.state = editView
+			m.helpMsg = "enter - CONFIRM, esc - CANCEL"
+			return m, nil
+		case "d":
+			m.state = deleteConfirm
+			m.helpMsg = "Delete tunnel " + m.table.SelectedRow()[0] + " ?(Y/n)"
+			return m, nil
+		case "r":
 			return m, tea.Batch(
-				tea.Println("selected ", m.tunnelsTable.Cursor()),
-				tea.Println(string(buf)),
+				tea.Println("run/stop ", m.table.SelectedRow()[0]),
 			)
+		case "esc":
+			m.state = tableView
+			m.helpMsg = "e - EDIT, d - DELETE, r - RUN/STOP"
+			return m, nil
 		}
 	}
-	m.tunnelsTable, cmd = m.tunnelsTable.Update(msg)
+
+	// else send msg to sub model
+	switch m.state {
+	case tableView:
+		m.table, cmd = m.table.Update(msg)
+	case editView:
+		m.edit, cmd = m.edit.Update(msg)
+	}
+
 	return m, cmd
 }
 
 func (m UIModel) View() string {
-	return m.tunnelsTable.View()
+	ret := m.table.View()
+	ret += "\n" + m.helpMsg
+	if m.state == editView {
+		ret += "\n" + m.edit.View()
+	}
+	return ret
 }
