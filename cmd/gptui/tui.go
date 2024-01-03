@@ -26,9 +26,8 @@ const (
 	deleteConfirm
 )
 const (
-	TableHelpMsg  string = "c - CREATE, e - EDIT, d - DELETE, r - RUN/STOP"
-	EditHelpMsg   string = "enter - CONFIRM, esc - CANCEL"
-	DeleteHelpMsg string = "Delete selected tunnel?(Y/n)"
+	TableHelpMsg string = "c - CREATE, e - EDIT, d - DELETE, r - RUN/STOP"
+	EditHelpMsg  string = "enter - CONFIRM, esc - CANCEL"
 )
 
 type UIModel struct {
@@ -72,6 +71,8 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = tableView
 		m.helpMsg = TableHelpMsg
 		return m, nil
+	case "ctrl+c":
+		return m, tea.Quit
 	}
 
 	// else send msg to sub model
@@ -93,7 +94,8 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "d":
 			m.state = deleteConfirm
-			m.helpMsg = DeleteHelpMsg
+			sr := m.table.SelectedRow()
+			m.helpMsg = fmt.Sprintf("Delete tunnel %v(%v)?(Y/n)", sr[0], sr[1])
 			return m, nil
 		case "r":
 			id, err := strconv.ParseInt(m.table.SelectedRow()[0], 10, 64)
@@ -123,7 +125,10 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.table, cmd = m.table.Update(msg)
 	case createView:
 		m.edit, cmd = m.edit.Update(msg)
-		if cmd != nil { // submitted
+		if cmd == nil {
+			break
+		}
+		if cmd() == "submit" { // submitted
 			name, source, dest := m.edit.GetInput()
 			// request core
 			id, err := m.end.CreateTunnel(name, source, dest)
@@ -133,10 +138,15 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Created tunnel " + fmt.Sprint(id)
 			}
 			m.state = tableView
+		} else {
+			m.helpMsg = cmd().(string)
 		}
 	case editView:
 		m.edit, cmd = m.edit.Update(msg)
-		if cmd != nil { // submitted
+		if cmd == nil {
+			break
+		}
+		if cmd() == "submit" { // submitted
 			name, source, dest := m.edit.GetInput()
 			id, err := strconv.ParseInt(m.table.SelectedRow()[0], 10, 64)
 			if err != nil {
@@ -151,6 +161,8 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Edited tunnel " + fmt.Sprint(id) + " successfully"
 			}
 			m.state = tableView
+		} else { // validate fail
+			m.helpMsg = cmd().(string)
 		}
 	case deleteConfirm:
 		switch s {

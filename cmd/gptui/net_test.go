@@ -90,7 +90,7 @@ func TestGetTunnelsList(t *testing.T) {
 			Name:   "first tunnel",
 			Enable: false,
 			Source: "localhost:2345",
-			Dest:   "192.168.10.1:4567",
+			Dest:   "233.168.10.1:5678",
 		},
 		{
 			ID:     2,
@@ -266,3 +266,5 @@ func TestGetAboutInfo(t *testing.T) {
 	assert.Equal(nil, err)
 	assert.Equal(target, ret)
 }
+
+// TODO: test ValidateName, ValidateSource, ValidateDest

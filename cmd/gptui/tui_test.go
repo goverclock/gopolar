@@ -31,7 +31,7 @@ func setupMockRouter(e *gin.Engine) {
 			Name:   "first tunnel",
 			Enable: false,
 			Source: "localhost:2345",
-			Dest:   "192.168.10.1:4567",
+			Dest:   "233.168.10.1:5678",
 		},
 		{
 			ID:     2,

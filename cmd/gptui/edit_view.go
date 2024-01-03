@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -42,6 +44,7 @@ func (m *EditModel) SetValues(name, source, dest string) {
 	m.inputs[0].SetValue(name)
 	m.inputs[1].SetValue(source)
 	m.inputs[2].SetValue(dest)
+	m.Update(nil)
 }
 
 func (m EditModel) GetInput() (name string, source string, dest string) {
@@ -55,6 +58,67 @@ func (m *EditModel) Reset() {
 		m.inputs[i].SetValue("")
 		m.inputs[i].SetCursor(0)
 	}
+	m.Update(nil)
+}
+
+// no prefixing of trailing spaces allowed
+func ValidateName(s string) error {
+	if len(s) == 0 {
+		return fmt.Errorf("name must be specified")
+	}
+	if s[0] == ' ' || s[len(s)-1] == ' ' {
+		return fmt.Errorf("no prefixing of trailing spaces allowed")
+	}
+	return nil
+}
+
+// source must be localhost:<port>
+func ValidateSource(s string) error {
+	if len(s) == 0 {
+		return fmt.Errorf("source must be specified")
+	}
+	sp := strings.FieldsFunc(s, func(r rune) bool {
+		return r == ':'
+	})
+	if len(sp) != 2 {
+		return fmt.Errorf("source must be localhost:<port>")
+	}
+	if sp[0] != "localhost" {
+		return fmt.Errorf("source must be localhost:<port>")
+	}
+	port, err := strconv.ParseInt(sp[1], 10, 64)
+	if err != nil {
+		return err
+	}
+	if port < 0 || port > 65535 {
+		return fmt.Errorf("invalid port: " + strconv.FormatInt(port, 10))
+	}
+	return nil
+}
+
+// dest must be xxx.xxx.xxx.xxx:<port> or localhost:<port>
+func ValidateDest(s string) error {
+	if len(s) == 0 {
+		return fmt.Errorf("dest must be specified")
+	}
+	sp := strings.FieldsFunc(s, func(r rune) bool {
+		return r == ':'
+	})
+	if len(sp) != 2 {
+		return fmt.Errorf("dest must be [xxx.xxx.xxx.xxx | localhost]:<port>")
+	}
+	ip := net.ParseIP(sp[0]) // without port
+	if sp[0] != "localhost" && ip == nil {
+		return fmt.Errorf("dest must be [xxx.xxx.xxx.xxx | localhost]:<port>")
+	}
+	port, err := strconv.ParseInt(sp[1], 10, 64)
+	if err != nil {
+		return err
+	}
+	if port < 0 || port > 65535 {
+		return fmt.Errorf("invalid port: " + strconv.FormatInt(port, 10))
+	}
+	return nil
 }
 
 func (m EditModel) Init() tea.Cmd {
@@ -72,8 +136,18 @@ func (m EditModel) Update(msg tea.Msg) (EditModel, tea.Cmd) {
 	case "tab", "shift+tab", "enter", "up", "down":
 		// submit
 		if s == "enter" && m.focusIndex == len(m.inputs) {
+			ret := "submit"
+			if err := ValidateDest(m.inputs[2].Value()); err != nil {
+				ret = "Invalid dest: " + fmt.Sprint(err)
+			}
+			if err := ValidateSource(m.inputs[1].Value()); err != nil {
+				ret = "Invalid source: " + fmt.Sprint(err)
+			}
+			if err := ValidateName(m.inputs[0].Value()); err != nil {
+				ret = "Invalid name: " + fmt.Sprint(err)
+			}
 			return m, func() tea.Msg {
-				return tea.KeyEnter
+				return ret
 			}
 		}
 		// cycle indexes
