@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,12 +12,10 @@ import (
 )
 
 var (
-	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("255")).Background(lipgloss.Color("8"))
-	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	focusedButton = focusedStyle.Copy().Render("[ Submit ]")
-	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 	noStyle       = lipgloss.NewStyle()
-	cursorStyle   = noStyle
+	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("255")).Background(lipgloss.Color("8"))
+	focusedButton = focusedStyle.Copy().Render("[ Submit ]")
+	blurredButton = fmt.Sprintf("[ %s ]", noStyle.Render("Submit"))
 )
 
 type sessionState uint // track which model is focused
@@ -84,29 +83,93 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "c":
 			m.state = createView
 			m.helpMsg = EditHelpMsg
+			m.edit.Reset()
 			return m, nil
 		case "e":
 			m.state = editView
 			m.helpMsg = EditHelpMsg
 			vals := m.table.SelectedRow()
-			m.edit.SetValue(vals[1], vals[2], vals[3])
+			m.edit.SetValues(vals[1], vals[2], vals[3])
 			return m, nil
 		case "d":
 			m.state = deleteConfirm
 			m.helpMsg = DeleteHelpMsg
 			return m, nil
 		case "r":
-			return m, tea.Batch(
-				tea.Println("run/stop ", m.table.SelectedRow()[0]),
-			)
+			id, err := strconv.ParseInt(m.table.SelectedRow()[0], 10, 64)
+			if err != nil {
+				m.helpMsg = "Fail to parse tunnel ID: " + fmt.Sprint(err)
+				break
+			}
+			// request core
+			err = m.end.ToggleTunnel(id)
+			strOk := "Stopped"
+			strFail := "stop"
+			if m.table.SelectedRow()[4] == "STOP" {
+				strOk = "Started"
+				strFail = "start"
+			}
+			if err != nil {
+				m.helpMsg = "Fail to " + strFail + " tunnel: " + fmt.Sprint(err)
+			} else {
+				m.helpMsg = strOk + " tunnel " + fmt.Sprint(id) + " successfully"
+			}
+			return m, nil
+		}
+		// reset to table help message only when table updates
+		if m.state == tableView {
+			m.helpMsg = TableHelpMsg
 		}
 		m.table, cmd = m.table.Update(msg)
+	case createView:
+		m.edit, cmd = m.edit.Update(msg)
+		if cmd != nil { // submitted
+			name, source, dest := m.edit.GetInput()
+			// request core
+			id, err := m.end.CreateTunnel(name, source, dest)
+			if err != nil {
+				m.helpMsg = fmt.Sprint(err)
+			} else {
+				m.helpMsg = "Created tunnel " + fmt.Sprint(id)
+			}
+			m.state = tableView
+		}
 	case editView:
 		m.edit, cmd = m.edit.Update(msg)
 		if cmd != nil { // submitted
 			name, source, dest := m.edit.GetInput()
-			m.end.EditTunnel(123, name, source, dest)
-
+			id, err := strconv.ParseInt(m.table.SelectedRow()[0], 10, 64)
+			if err != nil {
+				m.helpMsg = "Fail to parse tunnel ID: " + fmt.Sprint(err)
+				break
+			}
+			// request core
+			err = m.end.EditTunnel(id, name, source, dest)
+			if err != nil {
+				m.helpMsg = "Fail to edit tunnel: " + fmt.Sprint(err)
+			} else {
+				m.helpMsg = "Edited tunnel " + fmt.Sprint(id) + " successfully"
+			}
+			m.state = tableView
+		}
+	case deleteConfirm:
+		switch s {
+		case "y", "Y", "enter": // confirm
+			id, err := strconv.ParseInt(m.table.SelectedRow()[0], 10, 64)
+			if err != nil {
+				m.helpMsg = "Fail to parse tunnel ID: " + fmt.Sprint(err)
+				break
+			}
+			err = m.end.DeleteTunnel(id)
+			if err != nil {
+				m.helpMsg = "Fail to delete tunnel: " + fmt.Sprint(err)
+			} else {
+				m.helpMsg = "Deleted tunnel " + fmt.Sprint(id) + " successfully"
+			}
+			m.state = tableView
+		case "n", "N", "esc": // cancel
+			m.helpMsg = TableHelpMsg
+			m.state = tableView
 		}
 	}
 
@@ -116,7 +179,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m UIModel) View() string {
 	ret := m.table.View()
 	ret += "\n" + m.helpMsg
-	if m.state == editView {
+	if m.state == createView || m.state == editView {
 		ret += "\n" + m.edit.View()
 	}
 	return ret

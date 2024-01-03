@@ -19,7 +19,6 @@ func NewEditModel() *EditModel {
 	}
 	for i := range m.inputs {
 		t := textinput.New()
-		t.Cursor.Style = cursorStyle
 		t.CharLimit = len("111.111.111.111:65535")
 		switch i {
 		case 0:
@@ -37,7 +36,9 @@ func NewEditModel() *EditModel {
 	return &m
 }
 
-func (m EditModel) SetValue(name, source, dest string) {
+// reset edit view to default, then set values
+func (m *EditModel) SetValues(name, source, dest string) {
+	m.Reset()
 	m.inputs[0].SetValue(name)
 	m.inputs[1].SetValue(source)
 	m.inputs[2].SetValue(dest)
@@ -47,9 +48,12 @@ func (m EditModel) GetInput() (name string, source string, dest string) {
 	return m.inputs[0].Value(), m.inputs[1].Value(), m.inputs[2].Value()
 }
 
-func (m EditModel) Clear() {
+func (m *EditModel) Reset() {
+	m.focusIndex = 0
+	m.updateFocusStyle()
 	for i := range m.inputs {
 		m.inputs[i].SetValue("")
+		m.inputs[i].SetCursor(0)
 	}
 }
 
@@ -80,31 +84,12 @@ func (m EditModel) Update(msg tea.Msg) (EditModel, tea.Cmd) {
 		} else if m.focusIndex < len(m.inputs) {
 			m.focusIndex++
 		}
-		cmds := make([]tea.Cmd, len(m.inputs))
-		for i := 0; i < len(m.inputs); i++ {
-			if i == m.focusIndex {
-				cmds[i] = m.inputs[i].Focus()
-				m.inputs[i].PromptStyle = focusedStyle
-				m.inputs[i].TextStyle = focusedStyle
-			} else { // remove focus
-				m.inputs[i].Blur()
-				m.inputs[i].PromptStyle = noStyle
-				m.inputs[i].TextStyle = noStyle
-			}
-		}
+		m.updateFocusStyle()
 		return m, nil
 	}
 
 	_ = m.updateInputs(msg)
 	return m, nil
-}
-
-func (m *EditModel) updateInputs(msg tea.Msg) tea.Cmd {
-	cmds := make([]tea.Cmd, len(m.inputs))
-	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
-	}
-	return tea.Batch(cmds...)
 }
 
 func (m EditModel) View() string {
@@ -136,4 +121,27 @@ func (m EditModel) View() string {
 	fmt.Fprintf(&b, "\n\t%s\n\n", *button)
 
 	return b.String()
+}
+
+func (m *EditModel) updateInputs(msg tea.Msg) tea.Cmd {
+	cmds := make([]tea.Cmd, len(m.inputs))
+	for i := range m.inputs {
+		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	}
+	return tea.Batch(cmds...)
+}
+
+func (m *EditModel) updateFocusStyle() {
+	for i := 0; i < len(m.inputs); i++ {
+		if i == m.focusIndex {
+			m.inputs[i].Focus()
+			m.inputs[i].PromptStyle = focusedStyle
+			m.inputs[i].TextStyle = focusedStyle
+		} else { // remove focus
+			m.inputs[i].Blur()
+			m.inputs[i].PromptStyle = noStyle
+			m.inputs[i].TextStyle = noStyle
+		}
+	}
+
 }
