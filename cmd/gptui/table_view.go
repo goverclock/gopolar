@@ -16,20 +16,7 @@ func NewTableModel(tunnelList []gopolar.Tunnel) *table.Model {
 		{Title: "Dest", Width: 20},
 		{Title: "Status", Width: 8},
 	}
-	rows := []table.Row{}
-	for _, t := range tunnelList {
-		status := "STOP"
-		if t.Enable {
-			status = "RUNNING"
-		}
-		rows = append(rows, table.Row{
-			strconv.FormatUint(t.ID, 10),
-			t.Name,
-			t.Source,
-			t.Dest,
-			status,
-		})
-	}
+	rows := listToRows(tunnelList)
 	tb := table.New(
 		table.WithColumns(columns),
 		table.WithRows(rows),
@@ -45,4 +32,22 @@ func NewTableModel(tunnelList []gopolar.Tunnel) *table.Model {
 		Bold(false)
 	tb.SetStyles(s)
 	return &tb
+}
+
+func listToRows(tunnelList []gopolar.Tunnel) []table.Row {
+	rows := []table.Row{}
+	for _, t := range tunnelList {
+		status := "STOP"
+		if t.Enable {
+			status = "RUNNING"
+		}
+		rows = append(rows, table.Row{
+			strconv.FormatUint(t.ID, 10),
+			t.Name,
+			t.Source,
+			t.Dest,
+			status,
+		})
+	}
+	return rows
 }

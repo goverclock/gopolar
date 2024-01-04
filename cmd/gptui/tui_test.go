@@ -3,6 +3,7 @@ package main
 import (
 	"gopolar"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 
@@ -25,7 +26,7 @@ func setupMockRouter(e *gin.Engine) {
 		ctx.JSON(http.StatusOK, response)
 	})
 
-	expectList := []gopolar.Tunnel{
+	tunnels := []gopolar.Tunnel{
 		{
 			ID:     1,
 			Name:   "first tunnel",
@@ -57,11 +58,10 @@ func setupMockRouter(e *gin.Engine) {
 			} `json:"data"`
 		}
 		response.Success = true
-		response.Data.Tunnels = append(response.Data.Tunnels, expectList...)
+		response.Data.Tunnels = append(response.Data.Tunnels, tunnels...)
 		ctx.JSON(http.StatusOK, response)
 	})
 
-	createdTunnelID := uint64(23423)
 	mock_router.POST("/tunnels/create", func(ctx *gin.Context) {
 		var response struct {
 			Success bool   `json:"success"`
@@ -72,8 +72,17 @@ func setupMockRouter(e *gin.Engine) {
 		}
 		request := gopolar.CreateTunnelBody{}
 		ctx.Bind(&request)
+		log.Printf("%#v", request)
+		newTunnel := gopolar.Tunnel{
+			ID:     rand.Uint64() % 100,
+			Name:   request.Name,
+			Enable: false,
+			Source: request.Source,
+			Dest:   request.Dest,
+		}
+		tunnels = append(tunnels, newTunnel)
 		response.Success = true
-		response.Data.ID = createdTunnelID
+		response.Data.ID = newTunnel.ID
 		ctx.JSON(http.StatusOK, response)
 	})
 
@@ -86,6 +95,7 @@ func setupMockRouter(e *gin.Engine) {
 		}
 		request := gopolar.EditTunnelBody{}
 		ctx.Bind(&request)
+		log.Printf("%#v", request)
 		// parse params manually, due to possible gin issue on post params
 		reqUrl := ctx.Request.URL.String()
 		idStr := reqUrl[len("/tunnels/edit/"):]
@@ -127,7 +137,13 @@ func setupMockRouter(e *gin.Engine) {
 		}
 		reqUrl := ctx.Request.URL.String()
 		idStr := reqUrl[len("/tunnels/delete/"):]
-		_, err := strconv.ParseInt(idStr, 10, 64)
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		for i, t := range tunnels {
+			if t.ID == id {
+				tunnels = append(tunnels[:i], tunnels[i+1:]...)
+				break
+			}
+		}
 		if err != nil {
 			log.Println(err)
 		}

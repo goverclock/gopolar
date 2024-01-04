@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,8 +36,9 @@ type UIModel struct {
 	edit    EditModel // multiple textinputs
 	helpMsg string
 
-	state sessionState
-	end   *CLIEnd
+	state       sessionState
+	updatedList chan []table.Row
+	end         *CLIEnd
 }
 
 func NewUIModel(end *CLIEnd) *UIModel {
@@ -45,12 +47,28 @@ func NewUIModel(end *CLIEnd) *UIModel {
 		log.Println("fail to get tunnel list, is gopolar daemon running?")
 		os.Exit(1)
 	}
-	return &UIModel{
-		table:   *NewTableModel(tunnelList),
-		edit:    *NewEditModel(),
-		helpMsg: TableHelpMsg,
-		end:     end,
+	updateCh := make(chan []table.Row)
+	go func() {
+		for {
+			tunnelList, err := end.GetTunnelsList()
+			if err != nil {
+				log.Println("fail to get tunnel list, is gopolar daemon running?")
+				os.Exit(1)
+			}
+			rows := listToRows(tunnelList)
+			updateCh <- rows
+			time.Sleep(2 * time.Second)
+		}
+	}()
+	ret := &UIModel{
+		table:       *NewTableModel(tunnelList),
+		edit:        *NewEditModel(),
+		helpMsg:     TableHelpMsg,
+		state:       tableView,
+		updatedList: updateCh,
+		end:         end,
 	}
+	return ret
 }
 
 func (m UIModel) Init() tea.Cmd {
@@ -58,6 +76,12 @@ func (m UIModel) Init() tea.Cmd {
 }
 
 func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	select {
+	case newRows := <-m.updatedList:
+		m.table.SetRows(newRows)
+	default:
+	}
+
 	msgv, ok := msg.(tea.KeyMsg) // only care about key message
 	if !ok {
 		return m, nil
@@ -84,7 +108,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "c":
 			m.state = createView
 			m.helpMsg = EditHelpMsg
-			m.edit.Reset()
+			m.edit.SetValues("", "localhost:", "")
 			return m, nil
 		case "e":
 			m.state = editView
