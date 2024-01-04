@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gopolar"
 	"log"
 	"os"
 	"strconv"
@@ -37,12 +38,12 @@ type UIModel struct {
 	helpMsg string
 
 	state       sessionState
-	updatedList chan []table.Row
+	updatedList chan []table.Row // for auto update only
 	end         *CLIEnd
 }
 
 func NewUIModel(end *CLIEnd) *UIModel {
-	tunnelList, err := end.GetTunnelsList()
+	tunnelList, err := end.GetTunnelList()
 	if err != nil {
 		log.Println("fail to get tunnel list, is gopolar daemon running?")
 		os.Exit(1)
@@ -50,7 +51,7 @@ func NewUIModel(end *CLIEnd) *UIModel {
 	updateCh := make(chan []table.Row)
 	go func() {
 		for {
-			tunnelList, err := end.GetTunnelsList()
+			tunnelList, err := end.GetTunnelList()
 			if err != nil {
 				log.Println("fail to get tunnel list, is gopolar daemon running?")
 				os.Exit(1)
@@ -71,6 +72,15 @@ func NewUIModel(end *CLIEnd) *UIModel {
 	return ret
 }
 
+func (m *UIModel) getNewList() tea.Msg {
+	newTunnels, err := m.end.GetTunnelList()
+	if err != nil {
+		log.Println("fail to get tunnel list, is gopolar daemon running?")
+		os.Exit(1)
+	}
+	return newTunnels
+}
+
 func (m UIModel) Init() tea.Cmd {
 	return nil
 }
@@ -82,13 +92,20 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	default:
 	}
 
-	msgv, ok := msg.(tea.KeyMsg) // only care about key message
+	// local update
+	msgnt, ok := msg.([]gopolar.Tunnel)
+	if ok {
+		m.table.SetRows(listToRows(msgnt))
+		return m, nil
+	}
+
+	msgk, ok := msg.(tea.KeyMsg) // only care about key message
 	if !ok {
 		return m, nil
 	}
-	s := msgv.String()
+	s := msgk.String()
 
-	var cmd tea.Cmd
+	var cmd tea.Cmd = nil
 	// main model
 	switch s {
 	case "esc":
@@ -162,6 +179,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Created tunnel " + fmt.Sprint(id)
 			}
 			m.state = tableView
+			return m, m.getNewList
 		} else {
 			m.helpMsg = cmd().(string)
 		}
@@ -185,7 +203,8 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Edited tunnel " + fmt.Sprint(id) + " successfully"
 			}
 			m.state = tableView
-		} else { // validate fail
+			return m, m.getNewList
+		} else { // validate fail, got error message
 			m.helpMsg = cmd().(string)
 		}
 	case deleteConfirm:
@@ -203,12 +222,13 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Deleted tunnel " + fmt.Sprint(id) + " successfully"
 			}
 			m.state = tableView
+			return m, m.getNewList
 		case "n", "N", "esc": // cancel
 			m.helpMsg = TableHelpMsg
 			m.state = tableView
+			return m, nil
 		}
 	}
-
 	return m, cmd
 }
 

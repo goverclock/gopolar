@@ -33,7 +33,7 @@ func NewCLIEnd() *CLIEnd {
 	}
 }
 
-func (ce *CLIEnd) GetTunnelsList() ([]gopolar.Tunnel, error) {
+func (ce *CLIEnd) GetTunnelList() ([]gopolar.Tunnel, error) {
 	response, err := ce.GET("/tunnels/list")
 	if err != nil {
 		return nil, err

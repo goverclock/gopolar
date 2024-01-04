@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"gopolar"
 	"log"
 	"math/rand"
@@ -100,12 +101,20 @@ func setupMockRouter(e *gin.Engine) {
 		reqUrl := ctx.Request.URL.String()
 		idStr := reqUrl[len("/tunnels/edit/"):]
 		// idStr := ctx.Param("id")	// somehow buggy
-		// log.Println("idStr=", idStr)
-		// log.Println("request.url=", ctx.Request.URL)
-		// log.Println("params=", ctx.Params)
 		_, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			log.Println(err)
+		}
+		for i, t := range tunnels {
+			if fmt.Sprint(t.ID) == idStr {
+				tunnels[i] = gopolar.Tunnel{
+					ID:     t.ID,
+					Name:   request.NewName,
+					Enable: t.Enable,
+					Source: request.NewSource,
+					Dest:   request.NewDest,
+				}
+			}
 		}
 		response.Success = true
 		ctx.JSON(http.StatusOK, response)

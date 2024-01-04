@@ -120,7 +120,7 @@ func TestGetTunnelsList(t *testing.T) {
 		ctx.JSON(http.StatusOK, response)
 	})
 
-	retList, err := end.GetTunnelsList()
+	retList, err := end.GetTunnelList()
 	assert.Equal(nil, err)
 	assert.Equal(expectList, retList)
 }
