@@ -37,9 +37,9 @@ type UIModel struct {
 	edit    EditModel // multiple textinputs
 	helpMsg string
 
-	state       sessionState
-	updatedList chan []table.Row // for auto update only
-	end         *CLIEnd
+	state sessionState
+	// TODO: replace updatedList channel with tickMsg: https://github.com/charmbracelet/bubbletea/blob/master/examples/progress-animated/main.go
+	end *CLIEnd
 }
 
 func NewUIModel(end *CLIEnd) *UIModel {
@@ -48,31 +48,25 @@ func NewUIModel(end *CLIEnd) *UIModel {
 		log.Println("fail to get tunnel list, is gopolar daemon running?")
 		os.Exit(1)
 	}
-	updateCh := make(chan []table.Row)
-	go func() {
-		for {
-			tunnelList, err := end.GetTunnelList()
-			if err != nil {
-				log.Println("fail to get tunnel list, is gopolar daemon running?")
-				os.Exit(1)
-			}
-			rows := listToRows(tunnelList)
-			updateCh <- rows
-			time.Sleep(2 * time.Second)
-		}
-	}()
 	ret := &UIModel{
-		table:       *NewTableModel(tunnelList),
-		edit:        *NewEditModel(),
-		helpMsg:     TableHelpMsg,
-		state:       tableView,
-		updatedList: updateCh,
-		end:         end,
+		table:   *NewTableModel(tunnelList),
+		edit:    *NewEditModel(),
+		helpMsg: TableHelpMsg,
+		state:   tableView,
+		end:     end,
 	}
 	return ret
 }
 
-func (m *UIModel) getNewList() tea.Msg {
+type tickMsg time.Time
+
+func tickCmd() tea.Cmd {
+	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
+func (m *UIModel) updateListCmd() tea.Msg {
 	newTunnels, err := m.end.GetTunnelList()
 	if err != nil {
 		log.Println("fail to get tunnel list, is gopolar daemon running?")
@@ -82,14 +76,15 @@ func (m *UIModel) getNewList() tea.Msg {
 }
 
 func (m UIModel) Init() tea.Cmd {
-	return nil
+	return tickCmd()
 }
 
 func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	select {
-	case newRows := <-m.updatedList:
-		m.table.SetRows(newRows)
-	default:
+	// tick update
+	_, ok := msg.(tickMsg)
+	if ok {
+		return m,
+			tea.Batch(tickCmd(), m.updateListCmd)
 	}
 
 	// local update
@@ -157,7 +152,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.helpMsg = strOk + " tunnel " + fmt.Sprint(id) + " successfully"
 			}
-			return m, nil
+			return m, m.updateListCmd
 		}
 		// reset to table help message only when table updates
 		if m.state == tableView {
@@ -179,7 +174,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Created tunnel " + fmt.Sprint(id)
 			}
 			m.state = tableView
-			return m, m.getNewList
+			return m, m.updateListCmd
 		} else {
 			m.helpMsg = cmd().(string)
 		}
@@ -203,7 +198,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Edited tunnel " + fmt.Sprint(id) + " successfully"
 			}
 			m.state = tableView
-			return m, m.getNewList
+			return m, m.updateListCmd
 		} else { // validate fail, got error message
 			m.helpMsg = cmd().(string)
 		}
@@ -222,7 +217,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.helpMsg = "Deleted tunnel " + fmt.Sprint(id) + " successfully"
 			}
 			m.state = tableView
-			return m, m.getNewList
+			return m, m.updateListCmd
 		case "n", "N", "esc": // cancel
 			m.helpMsg = TableHelpMsg
 			m.state = tableView

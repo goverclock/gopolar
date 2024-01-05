@@ -107,13 +107,7 @@ func setupMockRouter(e *gin.Engine) {
 		}
 		for i, t := range tunnels {
 			if fmt.Sprint(t.ID) == idStr {
-				tunnels[i] = gopolar.Tunnel{
-					ID:     t.ID,
-					Name:   request.NewName,
-					Enable: t.Enable,
-					Source: request.NewSource,
-					Dest:   request.NewDest,
-				}
+				tunnels[i].Name, tunnels[i].Source, tunnels[i].Dest = request.NewName, request.NewSource, request.NewDest
 			}
 		}
 		response.Success = true
@@ -132,6 +126,11 @@ func setupMockRouter(e *gin.Engine) {
 		_, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			log.Println(err)
+		}
+		for i, t := range tunnels {
+			if fmt.Sprint(t.ID) == idStr {
+				tunnels[i].Enable = !tunnels[i].Enable
+			}
 		}
 		response.Success = true
 		ctx.JSON(http.StatusOK, response)
