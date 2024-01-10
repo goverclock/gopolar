@@ -175,9 +175,6 @@ func TestEditTunnel(t *testing.T) {
 		reqUrl := ctx.Request.URL.String()
 		idStr := reqUrl[len("/tunnels/edit/"):]
 		// idStr := ctx.Param("id")	// somehow buggy
-		// log.Println("idStr=", idStr)
-		// log.Println("request.url=", ctx.Request.URL)
-		// log.Println("params=", ctx.Params)
 		recvID, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			t.Log(err)

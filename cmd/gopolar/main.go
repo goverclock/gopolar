@@ -5,7 +5,6 @@ import (
 )
 
 func main() {
-	// TODO: read config to initialize tunnel manager
-	tm := gopolar.NewTunnelManager( /*cfg*/ )
+	tm := gopolar.NewTunnelManager()
 	tm.Run()
 }

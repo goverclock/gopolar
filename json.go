@@ -6,10 +6,6 @@ type CreateTunnelBody struct {
 	Dest   string `json:"dest"`
 }
 
-type CreateTunnelResp struct {
-	ID uint64
-}
-
 type EditTunnelBody struct {
 	NewName   string `json:"name"`
 	NewSource string `json:"source"`

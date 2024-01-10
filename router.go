@@ -43,8 +43,8 @@ func (tm *TunnelManager) setupRouter() {
 			} `json:"data"`
 		}
 		response.Success = true
-		defer ctx.JSON(http.StatusOK, response)
-		response.Data.Tunnels = tm.getTunnels() // never errors
+		response.Data.Tunnels = tm.getTunnels()
+		ctx.JSON(http.StatusOK, response)
 	})
 
 	router.POST("/tunnels/create", func(ctx *gin.Context) {
@@ -56,7 +56,6 @@ func (tm *TunnelManager) setupRouter() {
 			} `json:"data"`
 		}
 		response.Success = true
-		defer ctx.JSON(http.StatusOK, response)
 		request := CreateTunnelBody{}
 		ctx.Bind(&request)
 
@@ -74,6 +73,7 @@ func (tm *TunnelManager) setupRouter() {
 		} else {
 			response.Data.ID = newTunnelID
 		}
+		ctx.JSON(http.StatusOK, response)
 	})
 
 	router.POST("/tunnels/edit/:id", func(ctx *gin.Context) {
@@ -84,7 +84,6 @@ func (tm *TunnelManager) setupRouter() {
 			} `json:"data"`
 		}
 		response.Success = true
-		defer ctx.JSON(http.StatusOK, response)
 		request := EditTunnelBody{}
 		ctx.Bind(&request)
 		// parse params manually, due to possible gin issue on post params
@@ -96,6 +95,7 @@ func (tm *TunnelManager) setupRouter() {
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
+			ctx.JSON(http.StatusOK, response)
 			return
 		}
 		err = tm.changeTunnel(id, request.NewName, request.NewSource, request.NewDest)
@@ -103,6 +103,7 @@ func (tm *TunnelManager) setupRouter() {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
 		}
+		ctx.JSON(http.StatusOK, response)
 	})
 
 	router.POST("/tunnels/toggle/:id", func(ctx *gin.Context) {
@@ -113,13 +114,13 @@ func (tm *TunnelManager) setupRouter() {
 			} `json:"data"`
 		}
 		response.Success = true
-		defer ctx.JSON(http.StatusOK, response)
 		reqUrl := ctx.Request.URL.String()
 		idStr := reqUrl[len("/tunnels/toggle/"):]
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
+			ctx.JSON(http.StatusOK, response)
 			return
 		}
 
@@ -128,6 +129,7 @@ func (tm *TunnelManager) setupRouter() {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
 		}
+		ctx.JSON(http.StatusOK, response)
 	})
 
 	router.DELETE("/tunnels/delete/:id", func(ctx *gin.Context) {
@@ -138,13 +140,13 @@ func (tm *TunnelManager) setupRouter() {
 			} `json:"data"`
 		}
 		response.Success = true
-		defer ctx.JSON(http.StatusOK, response)
 		reqUrl := ctx.Request.URL.String()
 		idStr := reqUrl[len("/tunnels/delete/"):]
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
+			ctx.JSON(http.StatusOK, response)
 			return
 		}
 
@@ -153,6 +155,7 @@ func (tm *TunnelManager) setupRouter() {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
 		}
+		ctx.JSON(http.StatusOK, response)
 	})
 
 	router.GET("/about", func(ctx *gin.Context) {
@@ -164,11 +167,11 @@ func (tm *TunnelManager) setupRouter() {
 			} `json:"data"`
 		}
 		response.Success = true
-		defer ctx.JSON(http.StatusOK, response)
 
 		response.Data.About = AboutInfo{
 			Version: "1.0.0",
 		}
+		ctx.JSON(http.StatusOK, response)
 	})
 
 	tm.router = router

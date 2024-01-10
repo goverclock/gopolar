@@ -75,6 +75,11 @@ func (m *UIModel) updateListCmd() tea.Msg {
 	return newTunnels
 }
 
+// for debug
+func WriteTTY(tty string, msg string) {
+	os.WriteFile(tty, []byte(msg), os.ModePerm)
+}
+
 func (m UIModel) Init() tea.Cmd {
 	return tickCmd()
 }

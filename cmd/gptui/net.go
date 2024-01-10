@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"gopolar"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -91,6 +90,7 @@ func (ce *CLIEnd) GetAboutInfo() (gopolar.AboutInfo, error) {
 func bodyToJSON(body io.ReadCloser) (map[string]interface{}, error) {
 	ret := make(map[string]interface{})
 	jsonBytes, err := io.ReadAll(body)
+	// WriteTTY("/dev/ttys018", fmt.Sprintln(string(jsonBytes)))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (ce *CLIEnd) GET(url string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	if !ret["success"].(bool) {
-		log.Println("GET responses with success=false, err_msg=" + ret["err_msg"].(string))
+		return nil, fmt.Errorf("Operation failed: " + ret["err_msg"].(string))
 	}
 	ret = ret["data"].(map[string]interface{})
 	return ret, nil
@@ -142,7 +142,7 @@ func (ce *CLIEnd) POST(url string, data interface{}) (map[string]interface{}, er
 		return nil, err
 	}
 	if !ret["success"].(bool) {
-		log.Println("POST responses with success=false, err_msg=" + ret["err_msg"].(string))
+		return nil, fmt.Errorf("Operation failed: " + ret["err_msg"].(string))
 	}
 	ret = ret["data"].(map[string]interface{})
 	return ret, nil
@@ -170,7 +170,7 @@ func (ce *CLIEnd) DELETE(url string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	if !ret["success"].(bool) {
-		log.Println("DELETE responses with success=false, err_msg=" + ret["err_msg"].(string))
+		return nil, fmt.Errorf("Operation failed: " + ret["err_msg"].(string))
 	}
 	ret = ret["data"].(map[string]interface{})
 	return ret, nil

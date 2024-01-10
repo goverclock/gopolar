@@ -18,7 +18,7 @@ type Tunnel struct {
 
 **GET /tunnels/list**
 
-Get all tunnels from core.
+Get all tunnels from core, sorted by tunnel ID.
 
 ```
 response("data"):

@@ -7,5 +7,6 @@ type Config struct {
 // read config from $HOME/.config/gopolar/gopolar.toml
 // create config file if not exist
 func NewConfig() *Config {
+	// TODO:
 	return &Config{}
 }
