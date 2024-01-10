@@ -158,7 +158,7 @@ func TestCreateTunnel(t *testing.T) {
 func TestEditTunnel(t *testing.T) {
 	assert := assert.New(t)
 
-	targetID := int64(12345)
+	targetID := uint64(12345)
 	newName := "new created me"
 	newSource := "newhahah:3456"
 	newDest := "newDest:4567"
@@ -178,7 +178,7 @@ func TestEditTunnel(t *testing.T) {
 		// log.Println("idStr=", idStr)
 		// log.Println("request.url=", ctx.Request.URL)
 		// log.Println("params=", ctx.Params)
-		recvID, err := strconv.ParseInt(idStr, 10, 64)
+		recvID, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
 			t.Log(err)
 		}

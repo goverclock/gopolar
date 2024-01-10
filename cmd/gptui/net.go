@@ -58,13 +58,13 @@ func (ce *CLIEnd) CreateTunnel(name string, source string, dest string) (uint64,
 	return id, nil
 }
 
-func (ce *CLIEnd) EditTunnel(id int64, newName string, newSource string, newDest string) error {
+func (ce *CLIEnd) EditTunnel(id uint64, newName string, newSource string, newDest string) error {
 	body := gopolar.EditTunnelBody{
 		NewName:   newName,
 		NewSource: newSource,
 		NewDest:   newDest,
 	}
-	_, err := ce.POST("/tunnels/edit/"+strconv.FormatInt(id, 10), body)
+	_, err := ce.POST("/tunnels/edit/"+fmt.Sprint(id), body)
 	return err
 }
 

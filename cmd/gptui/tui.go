@@ -185,7 +185,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if cmd() == "submit" { // submitted
 			name, source, dest := m.edit.GetInput()
-			id, err := strconv.ParseInt(m.table.SelectedRow()[0], 10, 64)
+			id, err := strconv.ParseUint(m.table.SelectedRow()[0], 10, 64)
 			if err != nil {
 				m.helpMsg = "Fail to parse tunnel ID: " + fmt.Sprint(err)
 				break
