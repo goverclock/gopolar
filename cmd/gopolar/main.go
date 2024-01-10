@@ -4,32 +4,16 @@ import (
 	"log"
 )
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-func setup() {
-	log.SetPrefix("[core]")
-	log.SetFlags(0)
-}
+var tunnelManager *TunnelManager
 
 func main() {
-	setup()
-	// homeDir, err := os.UserHomeDir()
-	// configDir := homeDir + "/.gopolar"
-	// check(err)
-	// err = os.MkdirAll(configDir, os.ModePerm)
-	// check(err)
-	// f, err := os.Create(configDir + "/gopolar.sock")
-	// check(err)
-	// defer f.Close()
-	// sock := os.Getpid()	// todo
-	// f.WriteString(strconv.Itoa(sock))
+	log.SetPrefix("[core]")
+	log.SetFlags(0)
 
-	go handler()
-
-	for {
-	}
+	// TODO: read config to initialize tunnel manager
+	// cfg := NewConfig("config.toml")
+	tunnelManager = NewTunnelManager( /* cfg */ )
+	sock := setupSock()
+	router := setupRouter()
+	router.RunListener(sock)
 }
