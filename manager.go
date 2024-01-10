@@ -1,35 +1,50 @@
-package main
+package gopolar
 
 import (
-	"gopolar"
+	"log"
 	"math/rand"
+	"net"
 	"net/netip"
 	"sync"
+
+	"github.com/gin-gonic/gin"
 )
 
 type TunnelManager struct {
-	tunnels   []gopolar.Tunnel                        // ID -> source
-	forwarder map[netip.AddrPort]chan gopolar.Command // source -> tunnel routine chan
+	tunnels   []Tunnel                        // ID -> source
+	forwarder map[netip.AddrPort]chan Command // source -> tunnel routine chan
+	sock      net.Listener
+	router    *gin.Engine
 
 	mu sync.Mutex
 }
 
 // init tunnels from config file, exit if any error occurs
 func NewTunnelManager( /* cfg *Config */ ) *TunnelManager {
+	log.SetPrefix("[core]")
+	log.SetFlags(0)
 	// TODO:
 	// 1. read tunnel list from config file
 	// 2. build forward routines for tunnels with command channel, and store the channels
-	return &TunnelManager{}
+
+	ret := &TunnelManager{}
+	ret.setupSock()
+	ret.setupRouter()
+	return ret
 }
 
-func (tm *TunnelManager) GetTunnels() []gopolar.Tunnel {
+func (tm *TunnelManager) getTunnels() []Tunnel {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 	return tm.tunnels
 }
 
+func (tm *TunnelManager) Run() {
+	tm.router.RunListener(tm.sock)
+}
+
 // returns error if tunnel already exists
-func (tm *TunnelManager) AddTunnel(t gopolar.Tunnel) (uint64, error) {
+func (tm *TunnelManager) addTunnel(t Tunnel) (uint64, error) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 	// TODO:
@@ -38,7 +53,7 @@ func (tm *TunnelManager) AddTunnel(t gopolar.Tunnel) (uint64, error) {
 }
 
 // returns error if tunnel with id does not exist
-func (tm *TunnelManager) ChangeTunnel(id uint64, newName string, newSource string, newDest string) error {
+func (tm *TunnelManager) changeTunnel(id uint64, newName string, newSource string, newDest string) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 	// TODO:
@@ -55,7 +70,7 @@ func (tm *TunnelManager) ChangeTunnel(id uint64, newName string, newSource strin
 }
 
 // returns error if tunnel with id does not exist
-func (tm *TunnelManager) ToggleTunnel(id uint64) error {
+func (tm *TunnelManager) toggleTunnel(id uint64) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 	// TODO:
@@ -70,7 +85,7 @@ func (tm *TunnelManager) ToggleTunnel(id uint64) error {
 }
 
 // returns error if tunnel with id does not exist
-func (tm *TunnelManager) RemoveTunnel(id uint64) error {
+func (tm *TunnelManager) removeTunnel(id uint64) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 	// TODO:

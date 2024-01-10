@@ -4,6 +4,7 @@ import (
 	"strings"
 )
 
+// commands are sent to forwarder routines to control them
 type Command struct {
 	Name string
 	args []string

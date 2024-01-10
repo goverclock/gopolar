@@ -1,8 +1,7 @@
-package main
+package gopolar
 
 import (
 	"fmt"
-	"gopolar"
 	"log"
 	"net"
 	"net/http"
@@ -15,12 +14,13 @@ import (
 )
 
 // set up unix domain socket and signal handler for clean up
-func setupSock() net.Listener {
+func (tm *TunnelManager) setupSock() {
 	os.Remove("/tmp/gopolar.sock")
 	sock, err := net.Listen("unix", "/tmp/gopolar.sock")
 	if err != nil {
 		log.Fatal(err)
 	}
+	tm.sock = sock
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -29,11 +29,9 @@ func setupSock() net.Listener {
 		os.Remove("/tmp/gopolar.sock")
 		os.Exit(1)
 	}()
-
-	return sock
 }
 
-func setupRouter() *gin.Engine {
+func (tm *TunnelManager) setupRouter() {
 	router := gin.Default()
 
 	router.GET("/tunnels/list", func(ctx *gin.Context) {
@@ -41,12 +39,12 @@ func setupRouter() *gin.Engine {
 			Success bool   `json:"success"`
 			ErrMsg  string `json:"err_msg"`
 			Data    struct {
-				Tunnels []gopolar.Tunnel `json:"tunnels"`
+				Tunnels []Tunnel `json:"tunnels"`
 			} `json:"data"`
 		}
 		response.Success = true
 		defer ctx.JSON(http.StatusOK, response)
-		response.Data.Tunnels = tunnelManager.GetTunnels() // never errors
+		response.Data.Tunnels = tm.getTunnels() // never errors
 	})
 
 	router.POST("/tunnels/create", func(ctx *gin.Context) {
@@ -59,17 +57,17 @@ func setupRouter() *gin.Engine {
 		}
 		response.Success = true
 		defer ctx.JSON(http.StatusOK, response)
-		request := gopolar.CreateTunnelBody{}
+		request := CreateTunnelBody{}
 		ctx.Bind(&request)
 
-		newTunnel := gopolar.Tunnel{
+		newTunnel := Tunnel{
 			// ID:     ,
 			Name:   request.Name,
 			Enable: false,
 			Source: request.Source,
 			Dest:   request.Dest,
 		}
-		newTunnelID, err := tunnelManager.AddTunnel(newTunnel)
+		newTunnelID, err := tm.addTunnel(newTunnel)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
@@ -87,7 +85,7 @@ func setupRouter() *gin.Engine {
 		}
 		response.Success = true
 		defer ctx.JSON(http.StatusOK, response)
-		request := gopolar.EditTunnelBody{}
+		request := EditTunnelBody{}
 		ctx.Bind(&request)
 		// parse params manually, due to possible gin issue on post params
 		reqUrl := ctx.Request.URL.String()
@@ -100,7 +98,7 @@ func setupRouter() *gin.Engine {
 			response.ErrMsg = fmt.Sprint(err)
 			return
 		}
-		err = tunnelManager.ChangeTunnel(id, request.NewName, request.NewSource, request.NewDest)
+		err = tm.changeTunnel(id, request.NewName, request.NewSource, request.NewDest)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
@@ -125,7 +123,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		err = tunnelManager.ToggleTunnel(id)
+		err = tm.toggleTunnel(id)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
@@ -150,7 +148,7 @@ func setupRouter() *gin.Engine {
 			return
 		}
 
-		err = tunnelManager.RemoveTunnel(id)
+		err = tm.removeTunnel(id)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
@@ -162,16 +160,16 @@ func setupRouter() *gin.Engine {
 			Success bool   `json:"success"`
 			ErrMsg  string `json:"err_msg"`
 			Data    struct {
-				About gopolar.AboutInfo `json:"about"`
+				About AboutInfo `json:"about"`
 			} `json:"data"`
 		}
 		response.Success = true
 		defer ctx.JSON(http.StatusOK, response)
 
-		response.Data.About = gopolar.AboutInfo{
+		response.Data.About = AboutInfo{
 			Version: "1.0.0",
 		}
 	})
 
-	return router
+	tm.router = router
 }
