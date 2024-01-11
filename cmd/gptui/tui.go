@@ -128,18 +128,28 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.edit.SetValues("", "localhost:", "")
 			return m, nil
 		case "e":
+			vals := m.table.SelectedRow()
+			if vals == nil {
+				return m, nil
+			}
 			m.state = editView
 			m.helpMsg = EditHelpMsg
-			vals := m.table.SelectedRow()
 			m.edit.SetValues(vals[1], vals[2], vals[3])
 			return m, nil
 		case "d":
-			m.state = deleteConfirm
 			sr := m.table.SelectedRow()
+			if sr == nil {
+				return m, nil
+			}
+			m.state = deleteConfirm
 			m.helpMsg = fmt.Sprintf("Delete tunnel %v(%v)?(Y/n)", sr[0], sr[1])
 			return m, nil
 		case "r":
-			id, err := strconv.ParseInt(m.table.SelectedRow()[0], 10, 64)
+			sr := m.table.SelectedRow()
+			if sr == nil {
+				return m, nil
+			}
+			id, err := strconv.ParseInt(sr[0], 10, 64)
 			if err != nil {
 				m.helpMsg = "Fail to parse tunnel ID: " + fmt.Sprint(err)
 				break
@@ -148,7 +158,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			err = m.end.ToggleTunnel(id)
 			strOk := "Stopped"
 			strFail := "stop"
-			if m.table.SelectedRow()[4] == "STOP" {
+			if sr[4] == "STOP" {
 				strOk = "Started"
 				strFail = "start"
 			}
