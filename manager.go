@@ -16,12 +16,13 @@ type TunnelManager struct {
 	forwarder map[netip.AddrPort]chan Command // source -> tunnel routine chan
 	sock      net.Listener
 	router    *gin.Engine
+	cfg       *Config
 
 	mu sync.Mutex
 }
 
 // init tunnels from config file, exit if any error occurs
-func NewTunnelManager( /* cfg *Config */ ) *TunnelManager {
+func NewTunnelManager() *TunnelManager {
 	log.SetPrefix("[core]")
 	log.SetFlags(0)
 	// TODO:
@@ -35,6 +36,7 @@ func NewTunnelManager( /* cfg *Config */ ) *TunnelManager {
 	ret.setupSock()
 	ret.setupRouter()
 	cfg := NewConfig()
+	ret.cfg = cfg
 	for _, t := range cfg.tunnels {
 		ret.addTunnel(t)
 	}
@@ -84,7 +86,6 @@ func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
 		if t.MustParseSource() == src && t.MustParseDest() == dest {
 			return 0, fmt.Errorf("tunnel from %v to %v already exists(ID=%v)", src, dest, id)
 		}
-		log.Println("OK")
 	}
 
 	// generate id for the new tunnel

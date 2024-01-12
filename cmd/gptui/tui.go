@@ -38,7 +38,6 @@ type UIModel struct {
 	helpMsg string
 
 	state sessionState
-	// TODO: replace updatedList channel with tickMsg: https://github.com/charmbracelet/bubbletea/blob/master/examples/progress-animated/main.go
 	end *CLIEnd
 }
 

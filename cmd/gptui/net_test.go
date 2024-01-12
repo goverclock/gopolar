@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	// mock core
 	sock, err := net.Listen("unix", "/tmp/gopolar.sock")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	mock_router = gin.Default()

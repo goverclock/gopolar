@@ -1,6 +1,7 @@
 package gopolar
 
 import (
+	"fmt"
 	"net/netip"
 	"strings"
 )
@@ -11,6 +12,15 @@ type Tunnel struct {
 	Enable bool   `json:"enable"`
 	Source string `json:"source"` // e.g. localhost:xxxx
 	Dest   string `json:"dest"`   // e.g. 192.168.1.0:7878, localhost:7878
+}
+
+func (t Tunnel) String() string {
+	ret := fmt.Sprintf("Tunnel %v:\n", t.ID)
+	ret += fmt.Sprintf("\tName: %v\n", t.Name)
+	ret += fmt.Sprintf("\tEnable: %v\n", t.Enable)
+	ret += fmt.Sprintf("\tSource: %v\n", t.Source)
+	ret += fmt.Sprintf("\tDest: %v\n", t.Dest)
+	return ret
 }
 
 func (t Tunnel) ParseSource() (netip.AddrPort, error) {

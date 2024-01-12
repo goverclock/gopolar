@@ -18,7 +18,7 @@ func (tm *TunnelManager) setupSock() {
 	os.Remove("/tmp/gopolar.sock")
 	sock, err := net.Listen("unix", "/tmp/gopolar.sock")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 	tm.sock = sock
 
