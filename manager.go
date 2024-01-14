@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 type TunnelManager struct {
@@ -26,8 +27,7 @@ func NewTunnelManager() *TunnelManager {
 	log.SetPrefix("[core]")
 	log.SetFlags(0)
 	// TODO:
-	// 1. read tunnel list from config file
-	// 2. build forward routines for tunnels with command channel, and store the channels
+	// build forward routines for tunnels with command channel, and store the channels
 
 	ret := &TunnelManager{
 		tunnels:   make(map[uint64]*Tunnel),
@@ -48,18 +48,29 @@ func (tm *TunnelManager) Run() {
 	tm.router.RunListener(tm.sock)
 }
 
+// save current tunnel list to gopolar.toml
+func (tm *TunnelManager) saveNL() {
+	viper.Set("tunnels", tunnelMapToListNL(tm.tunnels))
+	viper.WriteConfig()
+}
+
 // always return a list sorted by tunnel ID,  never errors
 func (tm *TunnelManager) getTunnels() []Tunnel {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
-	list := make([]Tunnel, 0, len(tm.tunnels))
-	for _, t := range tm.tunnels {
+	return tunnelMapToListNL(tm.tunnels)
+}
+
+func tunnelMapToListNL(m map[uint64]*Tunnel) []Tunnel {
+	list := make([]Tunnel, 0, len(m))
+	for _, t := range m {
 		list = append(list, *t)
 	}
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].ID < list[j].ID
 	})
 	return list
+
 }
 
 // returns error if tunnel already exists
@@ -104,6 +115,8 @@ func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
 	tm.tunnels[newID] = &nt
 
 	// TODO: create forwarder routine
+
+	tm.saveNL()
 	return newID, nil
 }
 
@@ -122,6 +135,8 @@ func (tm *TunnelManager) changeTunnel(id uint64, newName string, newSource strin
 	tm.tunnels[id] = t
 
 	// TODO: update forwarder routine
+
+	tm.saveNL()
 	return nil
 }
 
@@ -137,6 +152,8 @@ func (tm *TunnelManager) toggleTunnel(id uint64) error {
 	t.Enable = !t.Enable
 
 	// TODO: update forwarder routine
+
+	tm.saveNL()
 	return nil
 }
 
@@ -151,5 +168,7 @@ func (tm *TunnelManager) removeTunnel(id uint64) error {
 	delete(tm.tunnels, id)
 
 	// TODO: update forward routine
+
+	tm.saveNL()
 	return nil
 }

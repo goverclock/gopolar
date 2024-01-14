@@ -1,7 +1,6 @@
 package gopolar
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -47,46 +46,17 @@ func NewConfig() *Config {
 	}
 
 	// read tunnels from config file
-	ts := viper.Get("tunnels").([]interface{})
-
-	for _, t := range ts {
-		ti := t.(map[string]interface{})
-		res := Tunnel{}
-		if err := mapstructure.Decode(ti, &res); err != nil {
-			log.Fatal("fail to parse config file:", err)
+	ts, ok := viper.Get("tunnels").([]interface{})
+	if ok {
+		for _, t := range ts {
+			ti := t.(map[string]interface{})
+			res := Tunnel{}
+			if err := mapstructure.Decode(ti, &res); err != nil {
+				log.Fatal("fail to parse config file:", err)
+			}
+			ret.tunnels = append(ret.tunnels, res)
 		}
-		ret.tunnels = append(ret.tunnels, res)
-	}
+	} // else ts is nil
 
-	// TODO: remove this
-	tunnels := []Tunnel{
-		{
-			ID:     1,
-			Name:   "first tunnel",
-			Enable: false,
-			Source: "localhost:2345",
-			Dest:   "233.168.10.1:5678",
-		},
-		{
-			ID:     2,
-			Name:   "second tunnel",
-			Enable: false,
-			Source: "localhost:3333",
-			Dest:   "192.168.10.1:4567",
-		},
-		{
-			ID:     3,
-			Name:   "hahaha this is 3",
-			Enable: true,
-			Source: "localhost:2789",
-			Dest:   "localhost:2333",
-		},
-	}
-	viper.Set("tunnels", tunnels)
-	viper.WriteConfig()
-
-	for _, t := range ret.tunnels {
-		fmt.Printf("read tunnels: %+v\n", t)
-	}
 	return ret
 }

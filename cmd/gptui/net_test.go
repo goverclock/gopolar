@@ -263,5 +263,3 @@ func TestGetAboutInfo(t *testing.T) {
 	assert.Equal(nil, err)
 	assert.Equal(target, ret)
 }
-
-// TODO: test ValidateName, ValidateSource, ValidateDest
