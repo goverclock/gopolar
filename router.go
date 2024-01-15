@@ -32,7 +32,7 @@ func (tm *TunnelManager) setupSock() {
 }
 
 func (tm *TunnelManager) setupRouter() {
-	router := gin.Default()
+	router := gin.New() // use gin.Default() for request log, gin.New() to omit
 
 	router.GET("/tunnels/list", func(ctx *gin.Context) {
 		var response struct {

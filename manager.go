@@ -24,7 +24,6 @@ type TunnelManager struct {
 
 // init tunnels from config file, exit if any error occurs
 func NewTunnelManager() *TunnelManager {
-	log.SetPrefix("[core]")
 	log.SetFlags(0)
 
 	ret := &TunnelManager{
@@ -61,9 +60,9 @@ func (tm *TunnelManager) addForwardL(src netip.AddrPort, dest string) {
 		fwd, err := NewForwarder(src)
 		if err != nil {
 			log.Printf("[manager] fail to create new forwarder for src=%v: %v\n", src, err)
-		} else {
-			tm.forwarder[src] = fwd
+			return
 		}
+		tm.forwarder[src] = fwd
 	}
 	tm.forwarder[src].Add(dest)
 }
@@ -95,6 +94,7 @@ func tunnelMapToListL(m map[uint64]*Tunnel) []Tunnel {
 
 }
 
+// new tunnel is enabled by default
 // returns error if tunnel already exists
 func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
 	tm.mu.Lock()
@@ -133,6 +133,7 @@ func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
 
 	// add the tunnel
 	nt.ID = newID
+	nt.Enable = true
 	tm.tunnels[newID] = &nt
 
 	// update forward
