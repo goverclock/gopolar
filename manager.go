@@ -13,8 +13,8 @@ import (
 )
 
 type TunnelManager struct {
-	tunnels   map[uint64]*Tunnel              // ID -> source
-	forwarder map[netip.AddrPort]chan Command // source -> tunnel routine chan
+	tunnels   map[uint64]*Tunnel            // ID -> source
+	forwarder map[netip.AddrPort]*Forwarder // source -> forwarder, only maintains running tunnels
 	sock      net.Listener
 	router    *gin.Engine
 	cfg       *Config
@@ -26,12 +26,10 @@ type TunnelManager struct {
 func NewTunnelManager() *TunnelManager {
 	log.SetPrefix("[core]")
 	log.SetFlags(0)
-	// TODO:
-	// build forward routines for tunnels with command channel, and store the channels
 
 	ret := &TunnelManager{
 		tunnels:   make(map[uint64]*Tunnel),
-		forwarder: make(map[netip.AddrPort]chan Command),
+		forwarder: make(map[netip.AddrPort]*Forwarder),
 	}
 	ret.setupSock()
 	ret.setupRouter()
@@ -48,20 +46,44 @@ func (tm *TunnelManager) Run() {
 	tm.router.RunListener(tm.sock)
 }
 
+// tm.mu must be held,
 // save current tunnel list to gopolar.toml
-func (tm *TunnelManager) saveNL() {
-	viper.Set("tunnels", tunnelMapToListNL(tm.tunnels))
+func (tm *TunnelManager) saveL() {
+	viper.Set("tunnels", tunnelMapToListL(tm.tunnels))
 	viper.WriteConfig()
+}
+
+// tm.mu must be held,
+// create new forwarder if needed,
+// then add the forward
+func (tm *TunnelManager) addForwardL(src netip.AddrPort, dest string) {
+	if tm.forwarder[src] == nil {
+		fwd, err := NewForwarder(src)
+		if err != nil {
+			log.Printf("[manager] fail to create new forwarder for src=%v: %v\n", src, err)
+		} else {
+			tm.forwarder[src] = fwd
+		}
+	}
+	tm.forwarder[src].Add(dest)
+}
+
+// tm.mu must be held,
+func (tm *TunnelManager) removeForwardL(src netip.AddrPort, dest string) {
+	if tm.forwarder[src].Remove(dest) {
+		tm.forwarder[src] = nil
+	}
 }
 
 // always return a list sorted by tunnel ID,  never errors
 func (tm *TunnelManager) getTunnels() []Tunnel {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
-	return tunnelMapToListNL(tm.tunnels)
+	return tunnelMapToListL(tm.tunnels)
 }
 
-func tunnelMapToListNL(m map[uint64]*Tunnel) []Tunnel {
+// tm.mu must be held
+func tunnelMapToListL(m map[uint64]*Tunnel) []Tunnel {
 	list := make([]Tunnel, 0, len(m))
 	for _, t := range m {
 		list = append(list, *t)
@@ -92,7 +114,6 @@ func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
 	}
 
 	// check if a forwarder routine is already running this mapping
-	// TODO: optimize by using Command to get forwarder routine's dest list
 	for id, t := range tm.tunnels {
 		if t.MustParseSource() == src && t.MustParseDest() == dest {
 			return 0, fmt.Errorf("tunnel from %v to %v already exists(ID=%v)", src, dest, id)
@@ -114,9 +135,10 @@ func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
 	nt.ID = newID
 	tm.tunnels[newID] = &nt
 
-	// TODO: create forwarder routine
+	// update forward
+	tm.addForwardL(src, nt.Dest)
 
-	tm.saveNL()
+	tm.saveL()
 	return newID, nil
 }
 
@@ -129,14 +151,17 @@ func (tm *TunnelManager) changeTunnel(id uint64, newName string, newSource strin
 	if !ok {
 		return fmt.Errorf("tunnel %v does not exist", id)
 	}
+
 	t.Name = newName
-	t.Source = newSource
-	t.Dest = newDest
-	tm.tunnels[id] = t
+	if t.Source != newSource || t.Dest != newDest {
+		// need to update forwarder, by removing old & adding new
+		tm.removeForwardL(t.MustParseSource(), t.Dest)
+		t.Source = newSource
+		t.Dest = newDest
+		tm.addForwardL(t.MustParseSource(), newDest)
+	}
 
-	// TODO: update forwarder routine
-
-	tm.saveNL()
+	tm.saveL()
 	return nil
 }
 
@@ -151,9 +176,14 @@ func (tm *TunnelManager) toggleTunnel(id uint64) error {
 	}
 	t.Enable = !t.Enable
 
-	// TODO: update forwarder routine
+	// update forwarder routine
+	if t.Enable {
+		tm.addForwardL(t.MustParseSource(), t.Dest)
+	} else {
+		tm.removeForwardL(t.MustParseSource(), t.Dest)
+	}
 
-	tm.saveNL()
+	tm.saveL()
 	return nil
 }
 
@@ -161,14 +191,16 @@ func (tm *TunnelManager) toggleTunnel(id uint64) error {
 func (tm *TunnelManager) removeTunnel(id uint64) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
-	_, ok := tm.tunnels[id]
+	t, ok := tm.tunnels[id]
 	if !ok {
 		return fmt.Errorf("tunnel %v does not exist", id)
 	}
+
+	// update forward routine
+	tm.removeForwardL(t.MustParseSource(), t.Dest)
+
 	delete(tm.tunnels, id)
 
-	// TODO: update forward routine
-
-	tm.saveNL()
+	tm.saveL()
 	return nil
 }
