@@ -2,7 +2,6 @@ package gopolar
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/netip"
@@ -29,6 +28,7 @@ func NewForwarder(source netip.AddrPort) (*Forwarder, error) {
 		connections: make(map[*net.Conn]map[string]*net.Conn),
 	}
 	go fwd.listen()
+	go fwd.copyRoutine()
 	return fwd, nil
 }
 
@@ -41,7 +41,7 @@ func (fwd *Forwarder) Add(d string) {
 
 	// dial new dest for all existing connS
 	for cs := range fwd.connections {
-		connD, err := net.Dial("tcp", d) // TODO: is it copying after the Dial?
+		connD, err := net.Dial("tcp", d)
 		if err != nil {
 			log.Printf("[forward] fail to dial dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
@@ -92,37 +92,57 @@ func (fwd *Forwarder) listen() {
 		log.Printf("[forward] dest=%v\n", fwd.dest)
 
 		fwd.mu.Lock()
-		fwd.connections[&connS] = make(map[string]*net.Conn) // TODO: when is this map deleted?
-		for _, d := range fwd.dest {                         // dial all dest for connS
+		fwd.connections[&connS] = make(map[string]*net.Conn)
+		for _, d := range fwd.dest { // dial all dest for connS
 			connD, err := net.Dial("tcp", d)
-			// TODO: to convert to AddrPort: connD.RemoteAddr().(*net.TCPAddr).
 			if err != nil {
 				log.Printf("[forward] fail to dial dest=%v for src=%v\n", d, src.Addr())
 				continue
 			}
 			log.Printf("[forward] src=%v dialed %v\n", src.Addr(), d)
 			fwd.connections[&connS][d] = &connD
-			go biCopyIO(connS, connD)
 		}
 		fwd.mu.Unlock()
 	}
 }
 
-// TODO: in order to copy to multiple dests, how to read src without consuming?
-func biCopyIO(src, dest net.Conn) {
-	log.Printf("[forward] start io copy(bidirectional), src=%v, dest=%v\n", src.LocalAddr(), dest.RemoteAddr())
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		io.Copy(dest, src)
-		dest.Close()
-	}()
-	go func() {
-		defer wg.Done()
-		io.Copy(src, dest)
-		src.Close()
-	}()
-	wg.Wait()
-	log.Printf("[forward] end io copy, src=%v, dest=%v\n", src.LocalAddr(), dest.RemoteAddr())
+func (fwd *Forwarder) copyRoutine() {
+	size := 32 * 1024
+	buf := make([]byte, size)
+	for {
+		fwd.mu.Lock()
+		closedConnS := []*net.Conn{}
+		for connS, mde := range fwd.connections {
+			// read connS, write to many connD
+			nr, err := (*connS).Read(buf)
+			if nr != 0 {
+				for _, connD := range mde {
+					(*connD).Write(buf[0:nr])
+				}
+			}
+			if err != nil { // connS is down
+				closedConnS = append(closedConnS, connS)
+				continue
+			}
+
+			// read many connD, write connS
+			totNr := 0
+			for _, connD := range mde {
+				nr, _ := (*connD).Read(buf[totNr:])
+				totNr += nr
+			}
+			if totNr != 0 {
+				(*connS).Write(buf[:totNr])
+			}
+		}
+		// remove closed connS and close relevant connections
+		for _, ccs := range closedConnS {
+			(*ccs).Close()
+			for _, connD := range fwd.connections[ccs] {
+				(*connD).Close()
+			}
+			delete(fwd.connections, ccs)
+		}
+		fwd.mu.Unlock()
+	}
 }
