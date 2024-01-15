@@ -11,9 +11,9 @@ import (
 
 // forward one source to one or multiple dest
 type Forwarder struct {
-	src      net.Listener
-	dest     []string                           // only for new connection to src to set up
-	forwards map[*net.Conn]map[string]*net.Conn // map[connSrc]map[dest]connDest
+	src         net.Listener
+	dest        []string                           // only for new connection to src to set up
+	connections map[*net.Conn]map[string]*net.Conn // map[connSrc]map[dest]connDest
 
 	mu sync.Mutex
 }
@@ -25,10 +25,10 @@ func NewForwarder(source netip.AddrPort) (*Forwarder, error) {
 	}
 	log.Printf("[forward] new forward listening localhost:%v\n", source.Port())
 	fwd := &Forwarder{
-		src:      src,
-		forwards: make(map[*net.Conn]map[string]*net.Conn),
+		src:         src,
+		connections: make(map[*net.Conn]map[string]*net.Conn),
 	}
-	go fwd.run()
+	go fwd.listen()
 	return fwd, nil
 }
 
@@ -40,12 +40,12 @@ func (fwd *Forwarder) Add(d string) {
 	log.Printf("[forward] new dest=%v\n", d)
 
 	// dial new dest for all existing connS
-	for cs := range fwd.forwards {
-		connD, err := net.Dial("tcp", d)
+	for cs := range fwd.connections {
+		connD, err := net.Dial("tcp", d) // TODO: is it copying after the Dial?
 		if err != nil {
 			log.Printf("[forward] fail to dial dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
-		fwd.forwards[cs][d] = &connD
+		fwd.connections[cs][d] = &connD
 		log.Printf("[forward] added dest=%v for src=%v\n", d, (*cs).RemoteAddr())
 	}
 }
@@ -65,10 +65,10 @@ func (fwd *Forwarder) Remove(d string) bool {
 	}
 
 	// stop existing connections to this dest
-	for cs := range fwd.forwards {
-		if fwd.forwards[cs][d] != nil {
-			(*fwd.forwards[cs][d]).Close() // this should stops io.Copy
-			fwd.forwards[cs][d] = nil
+	for cs := range fwd.connections {
+		if fwd.connections[cs][d] != nil {
+			(*fwd.connections[cs][d]).Close() // this should stops io.Copy
+			fwd.connections[cs][d] = nil
 			log.Printf("[forward] removed existing connection: dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
 	}
@@ -79,7 +79,7 @@ func (fwd *Forwarder) Remove(d string) bool {
 	return false
 }
 
-func (fwd *Forwarder) run() {
+func (fwd *Forwarder) listen() {
 	for {
 		// for each connect to source
 		src := fwd.src
@@ -92,15 +92,16 @@ func (fwd *Forwarder) run() {
 		log.Printf("[forward] dest=%v\n", fwd.dest)
 
 		fwd.mu.Lock()
-		fwd.forwards[&connS] = make(map[string]*net.Conn) // TODO: when is this map deleted?
-		for _, d := range fwd.dest {                      // dial all dest for connS
+		fwd.connections[&connS] = make(map[string]*net.Conn) // TODO: when is this map deleted?
+		for _, d := range fwd.dest {                         // dial all dest for connS
 			connD, err := net.Dial("tcp", d)
-			log.Printf("[forward] src=%v dialed %v\n", src.Addr(), d)
+			// TODO: to convert to AddrPort: connD.RemoteAddr().(*net.TCPAddr).
 			if err != nil {
 				log.Printf("[forward] fail to dial dest=%v for src=%v\n", d, src.Addr())
 				continue
 			}
-			fwd.forwards[&connS][d] = &connD
+			log.Printf("[forward] src=%v dialed %v\n", src.Addr(), d)
+			fwd.connections[&connS][d] = &connD
 			go biCopyIO(connS, connD)
 		}
 		fwd.mu.Unlock()
