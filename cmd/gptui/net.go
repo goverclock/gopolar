@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -26,6 +27,7 @@ func NewCLIEnd() *CLIEnd {
 				return net.Dial("unix", "/tmp/gopolar.sock")
 			},
 		},
+		Timeout: 3 * time.Second,
 	}
 	return &CLIEnd{
 		client: client,

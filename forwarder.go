@@ -1,11 +1,14 @@
 package gopolar
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/netip"
+	"os"
 	"sync"
+	"time"
 )
 
 // forward one source to one or multiple dest
@@ -14,7 +17,8 @@ type Forwarder struct {
 	dest        []string                           // only for new connection to src to set up
 	connections map[*net.Conn]map[string]*net.Conn // map[connSrc]map[dest]connDest
 
-	mu sync.Mutex
+	quit bool
+	mu   sync.Mutex
 }
 
 func NewForwarder(source netip.AddrPort) (*Forwarder, error) {
@@ -59,7 +63,7 @@ func (fwd *Forwarder) Remove(d string) bool {
 	for i, v := range fwd.dest {
 		if v == d {
 			fwd.dest = append(fwd.dest[:i], fwd.dest[i+1:]...)
-			log.Printf("[forward] remove dest=%v\n", d)
+			log.Printf("[forward] removed dest=%v\n", d)
 			break
 		}
 	}
@@ -68,12 +72,17 @@ func (fwd *Forwarder) Remove(d string) bool {
 	for cs := range fwd.connections {
 		if fwd.connections[cs][d] != nil {
 			(*fwd.connections[cs][d]).Close() // this should stops io.Copy
-			fwd.connections[cs][d] = nil
+			delete(fwd.connections[cs], d)
 			log.Printf("[forward] removed existing connection: dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
 	}
 	if len(fwd.dest) == 0 {
-		fwd.src.Close()
+		fwd.src.Close() // close listener
+		// close all existing connS
+		for cs := range fwd.connections {
+			(*cs).Close()
+		}
+		fwd.quit = true // notify copyRoutine() and listen() to quit
 		return true
 	}
 	return false
@@ -82,11 +91,19 @@ func (fwd *Forwarder) Remove(d string) bool {
 func (fwd *Forwarder) listen() {
 	for {
 		// for each connect to source
+		fwd.mu.Lock()
 		src := fwd.src
+		if fwd.quit {
+			log.Printf("[forward] source=%v quitted\n", src.Addr())
+			fwd.mu.Unlock()
+			break
+		}
+		fwd.mu.Unlock()
+
 		connS, err := src.Accept() // stop this by src.Close()
 		if err != nil {
-			log.Printf("[forward] source=%v quiting: %v", src.Addr(), err)
-			break // kill the routine by using src.Close()
+			log.Printf("[forward] source=%v quitted(error omitted)\n", src.Addr())
+			break
 		}
 		log.Printf("[forward] new client connects to source=%v\n", src.Addr())
 		log.Printf("[forward] dest=%v\n", fwd.dest)
@@ -111,16 +128,18 @@ func (fwd *Forwarder) copyRoutine() {
 	buf := make([]byte, size)
 	for {
 		fwd.mu.Lock()
+
 		closedConnS := []*net.Conn{}
 		for connS, mde := range fwd.connections {
 			// read connS, write to many connD
+			(*connS).SetReadDeadline(time.Now().Add(time.Millisecond)) // TODO: doc this in paper, see https://github.com/golang/go/issues/36973
 			nr, err := (*connS).Read(buf)
 			if nr != 0 {
 				for _, connD := range mde {
 					(*connD).Write(buf[0:nr])
 				}
 			}
-			if err != nil { // connS is down
+			if !errors.Is(err, os.ErrDeadlineExceeded) && err != nil { // connS is down
 				closedConnS = append(closedConnS, connS)
 				continue
 			}
@@ -128,13 +147,15 @@ func (fwd *Forwarder) copyRoutine() {
 			// read many connD, write connS
 			totNr := 0
 			for _, connD := range mde {
-				nr, _ := (*connD).Read(buf[totNr:])
+				(*connD).SetReadDeadline(time.Now().Add(time.Millisecond))
+				nr, _ := (*connD).Read(buf[totNr:]) // ignore errors from connD
 				totNr += nr
 			}
 			if totNr != 0 {
 				(*connS).Write(buf[:totNr])
 			}
 		}
+
 		// remove closed connS and close relevant connections
 		for _, ccs := range closedConnS {
 			(*ccs).Close()
@@ -142,6 +163,12 @@ func (fwd *Forwarder) copyRoutine() {
 				(*connD).Close()
 			}
 			delete(fwd.connections, ccs)
+		}
+
+		if fwd.quit {
+			log.Printf("[forward] copyRoutine for src=%v quitted", fwd.src.Addr())
+			fwd.mu.Unlock()
+			return
 		}
 		fwd.mu.Unlock()
 	}
