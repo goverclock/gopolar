@@ -1,4 +1,4 @@
-package gopolar
+package core
 
 import (
 	"errors"

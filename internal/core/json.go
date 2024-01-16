@@ -1,4 +1,4 @@
-package gopolar
+package core
 
 type CreateTunnelBody struct {
 	Name   string `json:"name"`

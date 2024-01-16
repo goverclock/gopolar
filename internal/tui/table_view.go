@@ -1,14 +1,14 @@
-package main
+package tui
 
 import (
-	"gopolar"
+	"gopolar/internal/core"
 	"strconv"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 )
 
-func NewTableModel(tunnelList []gopolar.Tunnel) *table.Model {
+func NewTableModel(tunnelList []core.Tunnel) *table.Model {
 	columns := []table.Column{
 		{Title: "ID", Width: 4},
 		{Title: "Name", Width: 16},
@@ -34,7 +34,7 @@ func NewTableModel(tunnelList []gopolar.Tunnel) *table.Model {
 	return &tb
 }
 
-func listToRows(tunnelList []gopolar.Tunnel) []table.Row {
+func listToRows(tunnelList []core.Tunnel) []table.Row {
 	rows := []table.Row{}
 	for _, t := range tunnelList {
 		status := "STOP"

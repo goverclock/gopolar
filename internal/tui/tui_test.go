@@ -1,8 +1,8 @@
-package main
+package tui
 
 import (
 	"fmt"
-	"gopolar"
+	"gopolar/internal/core"
 	"log"
 	"math/rand"
 	"net/http"
@@ -27,7 +27,7 @@ func setupMockRouter(e *gin.Engine) {
 		ctx.JSON(http.StatusOK, response)
 	})
 
-	tunnels := []gopolar.Tunnel{
+	tunnels := []core.Tunnel{
 		{
 			ID:     1,
 			Name:   "first tunnel",
@@ -55,7 +55,7 @@ func setupMockRouter(e *gin.Engine) {
 			Success bool   `json:"success"`
 			ErrMsg  string `json:"err_msg"`
 			Data    struct {
-				Tunnels []gopolar.Tunnel `json:"tunnels"`
+				Tunnels []core.Tunnel `json:"tunnels"`
 			} `json:"data"`
 		}
 		response.Success = true
@@ -71,10 +71,10 @@ func setupMockRouter(e *gin.Engine) {
 				ID uint64 `json:"id"`
 			} `json:"data"`
 		}
-		request := gopolar.CreateTunnelBody{}
+		request := core.CreateTunnelBody{}
 		ctx.Bind(&request)
 		log.Printf("%#v", request)
-		newTunnel := gopolar.Tunnel{
+		newTunnel := core.Tunnel{
 			ID:     rand.Uint64() % 100,
 			Name:   request.Name,
 			Enable: false,
@@ -94,7 +94,7 @@ func setupMockRouter(e *gin.Engine) {
 			Data    struct {
 			} `json:"data"`
 		}
-		request := gopolar.EditTunnelBody{}
+		request := core.EditTunnelBody{}
 		ctx.Bind(&request)
 		log.Printf("%#v", request)
 		// parse params manually, due to possible gin issue on post params
@@ -159,7 +159,7 @@ func setupMockRouter(e *gin.Engine) {
 		ctx.JSON(http.StatusOK, response)
 	})
 
-	target := gopolar.AboutInfo{
+	target := core.AboutInfo{
 		Version: "0.0.1",
 	}
 	mock_router.GET("/about", func(ctx *gin.Context) {
@@ -167,7 +167,7 @@ func setupMockRouter(e *gin.Engine) {
 			Success bool   `json:"success"`
 			ErrMsg  string `json:"err_msg"`
 			Data    struct {
-				About gopolar.AboutInfo `json:"about"`
+				About core.AboutInfo `json:"about"`
 			} `json:"data"`
 		}
 		response.Data.About = target

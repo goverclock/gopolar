@@ -1,8 +1,8 @@
-package main
+package tui
 
 import (
 	"fmt"
-	"gopolar"
+	"gopolar/internal/core"
 	"log"
 	"os"
 	"strconv"
@@ -92,7 +92,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// local update
-	msgnt, ok := msg.([]gopolar.Tunnel)
+	msgnt, ok := msg.([]core.Tunnel)
 	if ok {
 		m.table.SetRows(listToRows(msgnt))
 		return m, nil

@@ -1,11 +1,11 @@
-package main
+package tui
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopolar"
+	"gopolar/internal/core"
 	"io"
 	"net"
 	"net/http"
@@ -34,19 +34,19 @@ func NewCLIEnd() *CLIEnd {
 	}
 }
 
-func (ce *CLIEnd) GetTunnelList() ([]gopolar.Tunnel, error) {
+func (ce *CLIEnd) GetTunnelList() ([]core.Tunnel, error) {
 	response, err := ce.GET("/tunnels/list")
 	if err != nil {
 		return nil, err
 	}
-	ret := []gopolar.Tunnel{}
+	ret := []core.Tunnel{}
 	mapstructure.Decode(response["tunnels"], &ret)
 	return ret, nil
 }
 
 // returns ID of the new tunnel
 func (ce *CLIEnd) CreateTunnel(name string, source string, dest string) (uint64, error) {
-	body := gopolar.CreateTunnelBody{
+	body := core.CreateTunnelBody{
 		Name:   name,
 		Source: source,
 		Dest:   dest,
@@ -60,7 +60,7 @@ func (ce *CLIEnd) CreateTunnel(name string, source string, dest string) (uint64,
 }
 
 func (ce *CLIEnd) EditTunnel(id uint64, newName string, newSource string, newDest string) error {
-	body := gopolar.EditTunnelBody{
+	body := core.EditTunnelBody{
 		NewName:   newName,
 		NewSource: newSource,
 		NewDest:   newDest,
@@ -79,8 +79,8 @@ func (ce *CLIEnd) DeleteTunnel(id int64) error {
 	return err
 }
 
-func (ce *CLIEnd) GetAboutInfo() (gopolar.AboutInfo, error) {
-	ret := gopolar.AboutInfo{}
+func (ce *CLIEnd) GetAboutInfo() (core.AboutInfo, error) {
+	ret := core.AboutInfo{}
 	response, err := ce.GET("/about")
 	if err != nil {
 		return ret, err

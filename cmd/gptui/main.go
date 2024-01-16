@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gopolar/internal/tui"
 	"log"
 	"os"
 
@@ -14,8 +15,8 @@ func setup() {
 
 func main() {
 	setup()
-	end := NewCLIEnd()
-	m := NewUIModel(end)
+	end := tui.NewCLIEnd()
+	m := tui.NewUIModel(end)
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		log.Println("fail to setup UI model", err)
 		os.Exit(1)

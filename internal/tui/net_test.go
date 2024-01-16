@@ -1,7 +1,7 @@
-package main
+package tui
 
 import (
-	"gopolar"
+	"gopolar/internal/core"
 	"log"
 	"net"
 	"net/http"
@@ -84,7 +84,7 @@ func TestGetBad(t *testing.T) {
 func TestGetTunnelsList(t *testing.T) {
 	assert := assert.New(t)
 
-	expectList := []gopolar.Tunnel{
+	expectList := []core.Tunnel{
 		{
 			ID:     1,
 			Name:   "first tunnel",
@@ -112,7 +112,7 @@ func TestGetTunnelsList(t *testing.T) {
 			Success bool   `json:"success"`
 			ErrMsg  string `json:"err_msg"`
 			Data    struct {
-				Tunnels []gopolar.Tunnel `json:"tunnels"`
+				Tunnels []core.Tunnel `json:"tunnels"`
 			} `json:"data"`
 		}
 		response.Success = true
@@ -140,7 +140,7 @@ func TestCreateTunnel(t *testing.T) {
 				ID uint64 `json:"id"`
 			} `json:"data"`
 		}
-		request := gopolar.CreateTunnelBody{}
+		request := core.CreateTunnelBody{}
 		ctx.Bind(&request)
 		assert.Equal(name, request.Name)
 		assert.Equal(source, request.Source)
@@ -169,7 +169,7 @@ func TestEditTunnel(t *testing.T) {
 			Data    struct {
 			} `json:"data"`
 		}
-		request := gopolar.EditTunnelBody{}
+		request := core.EditTunnelBody{}
 		ctx.Bind(&request)
 		// parse params manually, due to possible gin issue on post params
 		reqUrl := ctx.Request.URL.String()
@@ -244,7 +244,7 @@ func TestDeleteTunnel(t *testing.T) {
 func TestGetAboutInfo(t *testing.T) {
 	assert := assert.New(t)
 
-	target := gopolar.AboutInfo{
+	target := core.AboutInfo{
 		Version: "0.0.1",
 	}
 	mock_router.GET("/about", func(ctx *gin.Context) {
@@ -252,7 +252,7 @@ func TestGetAboutInfo(t *testing.T) {
 			Success bool   `json:"success"`
 			ErrMsg  string `json:"err_msg"`
 			Data    struct {
-				About gopolar.AboutInfo `json:"about"`
+				About core.AboutInfo `json:"about"`
 			} `json:"data"`
 		}
 		response.Data.About = target
