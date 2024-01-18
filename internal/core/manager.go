@@ -23,7 +23,7 @@ type TunnelManager struct {
 }
 
 // init tunnels from config file, exit if any error occurs
-func NewTunnelManager() *TunnelManager {
+func NewTunnelManager(readConfig bool) *TunnelManager {
 	log.SetFlags(0)
 
 	ret := &TunnelManager{
@@ -32,10 +32,13 @@ func NewTunnelManager() *TunnelManager {
 	}
 	ret.setupSock()
 	ret.setupRouter()
-	cfg := NewConfig()
-	ret.cfg = cfg
-	for _, t := range cfg.tunnels {
-		ret.addTunnel(t)
+	if readConfig {
+		cfg := NewConfig()
+		ret.cfg = cfg
+		for _, t := range cfg.tunnels {
+			ret.AddTunnel(t)
+		}
+
 	}
 
 	return ret
@@ -75,7 +78,7 @@ func (tm *TunnelManager) removeForwardL(src netip.AddrPort, dest string) {
 }
 
 // always return a list sorted by tunnel ID,  never errors
-func (tm *TunnelManager) getTunnels() []Tunnel {
+func (tm *TunnelManager) GetTunnels() []Tunnel {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 	return tunnelMapToListL(tm.tunnels)
@@ -96,7 +99,7 @@ func tunnelMapToListL(m map[uint64]*Tunnel) []Tunnel {
 
 // new tunnel is enabled by default
 // returns error if tunnel already exists
-func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
+func (tm *TunnelManager) AddTunnel(nt Tunnel) (uint64, error) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
@@ -144,7 +147,7 @@ func (tm *TunnelManager) addTunnel(nt Tunnel) (uint64, error) {
 }
 
 // returns error if tunnel with id does not exist
-func (tm *TunnelManager) changeTunnel(id uint64, newName string, newSource string, newDest string) error {
+func (tm *TunnelManager) ChangeTunnel(id uint64, newName string, newSource string, newDest string) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
@@ -167,7 +170,7 @@ func (tm *TunnelManager) changeTunnel(id uint64, newName string, newSource strin
 }
 
 // returns error if tunnel with id does not exist
-func (tm *TunnelManager) toggleTunnel(id uint64) error {
+func (tm *TunnelManager) ToggleTunnel(id uint64) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
@@ -189,7 +192,7 @@ func (tm *TunnelManager) toggleTunnel(id uint64) error {
 }
 
 // returns error if tunnel with id does not exist
-func (tm *TunnelManager) removeTunnel(id uint64) error {
+func (tm *TunnelManager) RemoveTunnel(id uint64) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 	t, ok := tm.tunnels[id]

@@ -43,7 +43,7 @@ func (tm *TunnelManager) setupRouter() {
 			} `json:"data"`
 		}
 		response.Success = true
-		response.Data.Tunnels = tm.getTunnels()
+		response.Data.Tunnels = tm.GetTunnels()
 		ctx.JSON(http.StatusOK, response)
 	})
 
@@ -66,7 +66,7 @@ func (tm *TunnelManager) setupRouter() {
 			Source: request.Source,
 			Dest:   request.Dest,
 		}
-		newTunnelID, err := tm.addTunnel(newTunnel)
+		newTunnelID, err := tm.AddTunnel(newTunnel)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
@@ -98,7 +98,7 @@ func (tm *TunnelManager) setupRouter() {
 			ctx.JSON(http.StatusOK, response)
 			return
 		}
-		err = tm.changeTunnel(id, request.NewName, request.NewSource, request.NewDest)
+		err = tm.ChangeTunnel(id, request.NewName, request.NewSource, request.NewDest)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
@@ -124,7 +124,7 @@ func (tm *TunnelManager) setupRouter() {
 			return
 		}
 
-		err = tm.toggleTunnel(id)
+		err = tm.ToggleTunnel(id)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)
@@ -150,7 +150,7 @@ func (tm *TunnelManager) setupRouter() {
 			return
 		}
 
-		err = tm.removeTunnel(id)
+		err = tm.RemoveTunnel(id)
 		if err != nil {
 			response.Success = false
 			response.ErrMsg = fmt.Sprint(err)

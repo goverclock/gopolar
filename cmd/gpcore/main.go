@@ -5,6 +5,6 @@ import (
 )
 
 func main() {
-	tm := core.NewTunnelManager()
+	tm := core.NewTunnelManager(true)
 	tm.Run()
 }
