@@ -62,7 +62,7 @@ func (tm *TunnelManager) addForwardL(src netip.AddrPort, dest string) {
 	if tm.forwarder[src] == nil {
 		fwd, err := NewForwarder(src)
 		if err != nil {
-			log.Printf("[manager] fail to create new forwarder for src=%v: %v\n", src, err)
+			Debugf("[manager] fail to create new forwarder for src=%v: %v\n", src, err)
 			return
 		}
 		tm.forwarder[src] = fwd

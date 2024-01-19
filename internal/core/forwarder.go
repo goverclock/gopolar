@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/netip"
 	"os"
@@ -26,7 +25,7 @@ func NewForwarder(source netip.AddrPort) (*Forwarder, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fail to listen localhost:%v", source.Port())
 	}
-	log.Printf("[forward] new forward listening localhost:%v\n", source.Port())
+	Debugf("[forward] new forward listening localhost:%v\n", source.Port())
 	fwd := &Forwarder{
 		src:         src,
 		connections: make(map[*net.Conn]map[string]*net.Conn),
@@ -41,16 +40,16 @@ func (fwd *Forwarder) Add(d string) {
 	fwd.mu.Lock()
 	defer fwd.mu.Unlock()
 	fwd.dest = append(fwd.dest, d)
-	log.Printf("[forward] new dest=%v\n", d)
+	Debugf("[forward] new dest=%v\n", d)
 
 	// dial new dest for all existing connS
 	for cs := range fwd.connections {
 		connD, err := net.Dial("tcp", d)
 		if err != nil {
-			log.Printf("[forward] fail to dial dest=%v for src=%v\n", d, fwd.src.Addr())
+			Debugf("[forward] fail to dial dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
 		fwd.connections[cs][d] = &connD
-		log.Printf("[forward] added dest=%v for src=%v\n", d, (*cs).RemoteAddr())
+		Debugf("[forward] added dest=%v for src=%v\n", d, (*cs).RemoteAddr())
 	}
 }
 
@@ -63,7 +62,7 @@ func (fwd *Forwarder) Remove(d string) bool {
 	for i, v := range fwd.dest {
 		if v == d {
 			fwd.dest = append(fwd.dest[:i], fwd.dest[i+1:]...)
-			log.Printf("[forward] removed dest=%v\n", d)
+			Debugf("[forward] removed dest=%v\n", d)
 			break
 		}
 	}
@@ -73,7 +72,7 @@ func (fwd *Forwarder) Remove(d string) bool {
 		if fwd.connections[cs][d] != nil {
 			(*fwd.connections[cs][d]).Close() // this should stops io.Copy
 			delete(fwd.connections[cs], d)
-			log.Printf("[forward] removed existing connection: dest=%v for src=%v\n", d, fwd.src.Addr())
+			Debugf("[forward] removed existing connection: dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
 	}
 	if len(fwd.dest) == 0 {
@@ -94,7 +93,7 @@ func (fwd *Forwarder) listen() {
 		fwd.mu.Lock()
 		src := fwd.src
 		if fwd.quit {
-			log.Printf("[forward] source=%v quitted\n", src.Addr())
+			Debugf("[forward] source=%v quitted\n", src.Addr())
 			fwd.mu.Unlock()
 			break
 		}
@@ -102,21 +101,21 @@ func (fwd *Forwarder) listen() {
 
 		connS, err := src.Accept() // stop this by src.Close()
 		if err != nil {
-			log.Printf("[forward] source=%v quitted(error omitted)\n", src.Addr())
+			Debugf("[forward] source=%v quitted(error omitted)\n", src.Addr())
 			break
 		}
-		log.Printf("[forward] new client connects to source=%v\n", src.Addr())
-		log.Printf("[forward] dest=%v\n", fwd.dest)
+		Debugf("[forward] new client connects to source=%v\n", src.Addr())
+		Debugf("[forward] dest=%v\n", fwd.dest)
 
 		fwd.mu.Lock()
 		fwd.connections[&connS] = make(map[string]*net.Conn)
 		for _, d := range fwd.dest { // dial all dest for connS
 			connD, err := net.Dial("tcp", d)
 			if err != nil {
-				log.Printf("[forward] fail to dial dest=%v for src=%v\n", d, src.Addr())
+				Debugf("[forward] fail to dial dest=%v for src=%v\n", d, src.Addr())
 				continue
 			}
-			log.Printf("[forward] src=%v dialed %v\n", src.Addr(), d)
+			Debugf("[forward] src=%v dialed %v\n", src.Addr(), d)
 			fwd.connections[&connS][d] = &connD
 		}
 		fwd.mu.Unlock()
@@ -166,7 +165,7 @@ func (fwd *Forwarder) copyRoutine() {
 		}
 
 		if fwd.quit {
-			log.Printf("[forward] copyRoutine for src=%v quitted", fwd.src.Addr())
+			Debugf("[forward] copyRoutine for src=%v quitted", fwd.src.Addr())
 			fwd.mu.Unlock()
 			return
 		}
