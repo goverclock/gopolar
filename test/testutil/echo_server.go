@@ -6,7 +6,6 @@ import (
 	"gopolar/internal/core"
 	"net"
 	"os"
-	"testing"
 )
 
 type EchoServer struct {
@@ -16,7 +15,7 @@ type EchoServer struct {
 }
 
 // setup a echo server that replies same message with a prefix
-func NewEchoServer(t *testing.T, port uint64, prefix string) *EchoServer {
+func NewEchoServer(port uint64, prefix string) *EchoServer {
 	p := ":" + fmt.Sprint(port)
 	listener, err := net.Listen("tcp", p)
 	ret := &EchoServer{

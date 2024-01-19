@@ -32,13 +32,13 @@ func NewTunnelManager(readConfig bool) *TunnelManager {
 	}
 	ret.setupSock()
 	ret.setupRouter()
+
 	if readConfig {
 		cfg := NewConfig()
 		ret.cfg = cfg
 		for _, t := range cfg.tunnels {
 			ret.AddTunnel(t)
 		}
-
 	}
 
 	return ret

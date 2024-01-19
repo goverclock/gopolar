@@ -72,7 +72,7 @@ func (fwd *Forwarder) Remove(d string) bool {
 		if fwd.connections[cs][d] != nil {
 			(*fwd.connections[cs][d]).Close() // this should stops io.Copy
 			delete(fwd.connections[cs], d)
-			Debugf("[forward] removed existing connection: dest=%v for src=%v\n", d, fwd.src.Addr())
+			Debugf("[forward] ended existing connection: dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
 	}
 	if len(fwd.dest) == 0 {
@@ -109,6 +109,7 @@ func (fwd *Forwarder) listen() {
 
 		fwd.mu.Lock()
 		fwd.connections[&connS] = make(map[string]*net.Conn)
+		established := false
 		for _, d := range fwd.dest { // dial all dest for connS
 			connD, err := net.Dial("tcp", d)
 			if err != nil {
@@ -117,6 +118,10 @@ func (fwd *Forwarder) listen() {
 			}
 			Debugf("[forward] src=%v dialed %v\n", src.Addr(), d)
 			fwd.connections[&connS][d] = &connD
+			established = true
+		}
+		if !established {
+			connS.Close()
 		}
 		fwd.mu.Unlock()
 	}
@@ -138,7 +143,7 @@ func (fwd *Forwarder) copyRoutine() {
 					(*connD).Write(buf[0:nr])
 				}
 			}
-			if !errors.Is(err, os.ErrDeadlineExceeded) && err != nil { // connS is down
+			if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) { // connS is down
 				closedConnS = append(closedConnS, connS)
 				continue
 			}
@@ -158,6 +163,7 @@ func (fwd *Forwarder) copyRoutine() {
 		// remove closed connS and close relevant connections
 		for _, ccs := range closedConnS {
 			(*ccs).Close()
+			Debugf("[forward] connS closed for src=%v", fwd.src.Addr())
 			for _, connD := range fwd.connections[ccs] {
 				(*connD).Close()
 			}

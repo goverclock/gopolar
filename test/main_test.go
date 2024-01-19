@@ -18,6 +18,8 @@ func TestMain(t *testing.M) {
 func clear() {
 	tunnels := tm.GetTunnels()
 	for _, t := range tunnels {
-		tm.RemoveTunnel(t.ID)
+		if tm.RemoveTunnel(t.ID) != nil {
+			panic("fail to remove tunnel")
+		}
 	}
 }
