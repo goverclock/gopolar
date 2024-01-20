@@ -11,7 +11,7 @@ import (
 type EchoServer struct {
 	name     string
 	listener net.Listener
-	prefix   string
+	Prefix   string
 }
 
 // setup a echo server that replies same message with a prefix
@@ -21,7 +21,7 @@ func NewEchoServer(port uint64, prefix string) *EchoServer {
 	ret := &EchoServer{
 		name:     "[server" + p + "] ",
 		listener: listener,
-		prefix:   prefix,
+		Prefix:   prefix,
 	}
 	if err != nil {
 		core.Debugln(ret.name+"failed to create listener, err:", err)
@@ -58,7 +58,7 @@ func (es *EchoServer) handleConnection(conn net.Conn) {
 			break
 		}
 		core.Debugf(es.name+"request: %s", bytes)
-		line := fmt.Sprintf("%s%s", es.prefix, bytes)
+		line := fmt.Sprintf("%s%s", es.Prefix, bytes)
 		core.Debugf(es.name+"response: %s", line)
 		conn.Write([]byte(line))
 	}

@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// go test -bench=. -benchmem -v
+
 // returns n MB bytes without zero
 func MakeDataMB(n uint) []byte {
 	size := n * 1024 * 1024
@@ -19,26 +21,53 @@ func MakeDataMB(n uint) []byte {
 	return buf
 }
 
-func TestDirect100MB(t *testing.T) {
-	assert := assert.New(t)
+// connect, send, recv, verify, disconnect
+func transmit(msg *string, serv *testutil.EchoServer, clnt *testutil.EchoClient) {
+	clnt.Connect()
+	err := clnt.Send(*msg)
+	if err != nil {
+		panic(err)
+	}
+	reply := clnt.Recv()
+	if reply != serv.Prefix+*msg {
+		panic("Direct(): got inconsistent data")
+	}
+	clnt.Disconnect()
+}
 
-	prefix := "hello"
-	serv88 := testutil.NewEchoServer(88, prefix)
+// as standard
+func BenchmarkSingleDirect100MB(b *testing.B) {
+	clear()
+
+	serv88 := testutil.NewEchoServer(88, "hello")
 	defer serv88.Quit()
-
 	clnt88 := testutil.NewEchoClient(88)
-	assert.Nil(clnt88.Connect())
 
 	data := string(MakeDataMB(100))
 	msg := fmt.Sprintf("data from client: %v\n", data)
-	assert.Nil(clnt88.Send(msg))
-	reply := clnt88.Recv()
-	assert.Equal(prefix+msg, reply)
+	for i := 0; i < b.N; i++ {
+		transmit(&msg, serv88, clnt88)
+	}
+}
+
+// as standard
+func BenchmarkSingleDirect500MB(b *testing.B) {
+	clear()
+
+	serv88 := testutil.NewEchoServer(88, "hello")
+	defer serv88.Quit()
+	clnt88 := testutil.NewEchoClient(88)
+
+	data := string(MakeDataMB(500))
+	msg := fmt.Sprintf("data from client: %v\n", data)
+	for i := 0; i < b.N; i++ {
+		transmit(&msg, serv88, clnt88)
+	}
 }
 
 // same with TestOne2One, but with 100 MB data
-func TestForward100MB(t *testing.T) {
-	assert := assert.New(t)
+func BenchmarkSingleForward100MB(b *testing.B) {
+	assert := assert.New(b)
 	clear()
 
 	_, err := tm.AddTunnel(core.Tunnel{
@@ -48,18 +77,37 @@ func TestForward100MB(t *testing.T) {
 	})
 	assert.Nil(err)
 
-	prefix := "hello"
-	serv88 := testutil.NewEchoServer(88, prefix)
+	serv88 := testutil.NewEchoServer(88, "hahaha")
 	defer serv88.Quit()
-
 	clnt33 := testutil.NewEchoClient(33)
-	assert.Nil(clnt33.Connect())
 
 	data := string(MakeDataMB(100))
 	msg := fmt.Sprintf("data from client: %v\n", data)
-	assert.Nil(clnt33.Send(msg))
-	reply := clnt33.Recv()
-	assert.Equal(prefix+msg, reply)
+	for i := 0; i < b.N; i++ {
+		transmit(&msg, serv88, clnt33)
+	}
+}
+
+func BenchmarkSingleForward500MB(b *testing.B) {
+	assert := assert.New(b)
+	clear()
+
+	_, err := tm.AddTunnel(core.Tunnel{
+		Name:   "tfrom 33 to 88",
+		Source: "localhost:33",
+		Dest:   "localhost:88",
+	})
+	assert.Nil(err)
+
+	serv88 := testutil.NewEchoServer(88, "hahaha")
+	defer serv88.Quit()
+	clnt33 := testutil.NewEchoClient(33)
+
+	data := string(MakeDataMB(500))
+	msg := fmt.Sprintf("data from client: %v\n", data)
+	for i := 0; i < b.N; i++ {
+		transmit(&msg, serv88, clnt33)
+	}
 }
 
 // TODO: TestManyManyConnections()

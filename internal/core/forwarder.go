@@ -136,7 +136,7 @@ func (fwd *Forwarder) copyRoutine() {
 		closedConnS := []*net.Conn{}
 		for connS, mde := range fwd.connections {
 			// read connS, write to many connD
-			(*connS).SetReadDeadline(time.Now().Add(time.Millisecond)) // TODO: doc this in paper, see https://github.com/golang/go/issues/36973
+			(*connS).SetReadDeadline(time.Now().Add(time.Microsecond)) // TODO: doc this in paper, see https://github.com/golang/go/issues/36973
 			nr, err := (*connS).Read(buf)
 			if nr != 0 {
 				for _, connD := range mde {
@@ -151,7 +151,7 @@ func (fwd *Forwarder) copyRoutine() {
 			// read many connD, write connS
 			totNr := 0
 			for _, connD := range mde {
-				(*connD).SetReadDeadline(time.Now().Add(time.Millisecond))
+				(*connD).SetReadDeadline(time.Now().Add(time.Microsecond))
 				nr, _ := (*connD).Read(buf[totNr:]) // ignore errors from connD
 				totNr += nr
 			}
