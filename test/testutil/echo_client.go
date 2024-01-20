@@ -6,6 +6,7 @@ import (
 	"gopolar/internal/core"
 	"io"
 	"net"
+	"os"
 	"time"
 )
 
@@ -72,16 +73,31 @@ func (ec *EchoClient) Send(msg string) error {
 	return err
 }
 
+// read until new line
 func (ec *EchoClient) Recv() string {
 	if ec.conn == nil {
 		panic(ec.name + "trying to Recv() without connection")
 	}
-	buf := make([]byte, 1024*32)
-	nr, err := ec.conn.Read(buf)
-	if err != nil && !errors.Is(err, io.EOF) {
-		panic(ec.name + err.Error())
+	buf := make([]byte, 100*1024*1024)
+
+	reply := []byte{}
+	for {
+		ec.conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
+		nr, err := ec.conn.Read(buf)
+		if err == nil {
+			reply = append(reply, buf[:nr]...)
+		} else if errors.Is(err, os.ErrDeadlineExceeded) {
+			continue
+		} else if errors.Is(err, io.EOF) {
+			break
+		} else {
+			panic(ec.name + err.Error())
+		}
+		if buf[nr-1] == '\n' {
+			break
+		}
 	}
-	reply := string(buf[:nr])
+
 	core.Debugln(ec.name + "recv: " + string(reply))
 	return string(reply)
 }
