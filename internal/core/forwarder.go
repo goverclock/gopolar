@@ -128,7 +128,7 @@ func (fwd *Forwarder) listen() {
 }
 
 func (fwd *Forwarder) copyRoutine() {
-	size := 32 * 1024
+	size := 1024 * 1024 // TODO: doc this, or this should be adjustable
 	buf := make([]byte, size)
 	for {
 		fwd.mu.Lock()
