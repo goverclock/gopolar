@@ -153,10 +153,12 @@ func (fwd *Forwarder) copyRoutine() {
 			for _, connD := range mde {
 				(*connD).SetReadDeadline(time.Now().Add(time.Microsecond))
 				nr, _ := (*connD).Read(buf[totNr:]) // ignore errors from connD
+				// Debugf("[forward] read %v bytes from dest=%v, err=%v", nr, dest, err)
 				totNr += nr
 			}
 			if totNr != 0 {
-				(*connS).Write(buf[:totNr])
+				_, _ = (*connS).Write(buf[:totNr])
+				// Debugf("[forward] write %v bytes to src=%v, err=%v", nw, fwd.src.Addr(), err)
 			}
 		}
 

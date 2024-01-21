@@ -57,9 +57,9 @@ func (es *EchoServer) handleConnection(conn net.Conn) {
 			core.Debugln(es.name + "disconnected " + conn.RemoteAddr().String())
 			break
 		}
-		core.Debugf(es.name+"request: %s", bytes)
+		core.Debugf(es.name+"request: %s\\n", bytes[:len(bytes)-1])
 		line := fmt.Sprintf("%s%s", es.Prefix, bytes)
-		core.Debugf(es.name+"response: %s", line)
-		conn.Write([]byte(line))
+		_, err = conn.Write([]byte(line))
+		core.Debugf(es.name+"response: %s\\n, err=%v", line[:len(line)-1], err)
 	}
 }

@@ -38,7 +38,6 @@ func TestOne2One(t *testing.T) {
 
 // forward request from 33 to 88, 89, 90, ..., 100
 func TestOne2Many(t *testing.T) {
-	return
 	assert := assert.New(t)
 	clear()
 
@@ -71,8 +70,11 @@ func TestOne2Many(t *testing.T) {
 	err = clnt33.Send(msg)
 	assert.Nil(err)
 
-	// TODO: should read multiple times, since each Recv() returns on '\n'
-	reply := clnt33.Recv()
+	// should read multiple times, since each Recv() returns on '\n'
+	reply := ""
+	for i := 0; i < end-start+1; i++ {
+		reply += clnt33.Recv()
+	}
 	assert.Equal(expectRecv, len(reply))
 }
 

@@ -1,19 +1,20 @@
 package testutil
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"gopolar/internal/core"
 	"io"
 	"net"
-	"os"
 	"time"
 )
 
 type EchoClient struct {
-	name string
-	port string
-	conn net.Conn
+	name       string
+	port       string
+	conn       net.Conn // for send only, do not read conn, read lineReader
+	lineReader *bufio.Reader
 }
 
 func NewEchoClient(port uint64) *EchoClient {
@@ -28,6 +29,7 @@ func NewEchoClient(port uint64) *EchoClient {
 func (ec *EchoClient) Connect() error {
 	conn, err := net.Dial("tcp", ec.port)
 	ec.conn = conn
+	ec.lineReader = bufio.NewReader(ec.conn)
 	if err != nil {
 		core.Debugln(ec.name + "fail to connect to " + conn.RemoteAddr().String())
 	} else {
@@ -73,31 +75,23 @@ func (ec *EchoClient) Send(msg string) error {
 	return err
 }
 
-// read until new line
+// read until new line or EOF
 func (ec *EchoClient) Recv() string {
-	if ec.conn == nil {
+	if ec.lineReader == nil {
 		panic(ec.name + "trying to Recv() without connection")
 	}
-	buf := make([]byte, 100*1024*1024)
 
 	reply := []byte{}
-	for {
-		ec.conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
-		nr, err := ec.conn.Read(buf)
-		if err == nil {
-			reply = append(reply, buf[:nr]...)
-		} else if errors.Is(err, os.ErrDeadlineExceeded) {
-			continue
-		} else if errors.Is(err, io.EOF) {
-			break
-		} else {
-			panic(ec.name + err.Error())
-		}
-		if buf[nr-1] == '\n' {
-			break
-		}
+	// core.Debugln(ec.name + "reading")
+	bytes, err := ec.lineReader.ReadBytes(byte('\n'))
+	core.Debugf(ec.name+"read %v bytes\n", len(bytes))
+	if err == nil || errors.Is(err, io.EOF) {
+		reply = append(reply, bytes...)
+	} else {
+		panic(ec.name + err.Error())
 	}
 
-	core.Debugln(ec.name + "recv: " + string(reply))
+	s := string(reply)
+	core.Debugln(ec.name + "recv: " + s[:len(s)-1] + "\\n")
 	return string(reply)
 }
