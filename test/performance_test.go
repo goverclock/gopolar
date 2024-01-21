@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"gopolar/internal/core"
 	"gopolar/test/testutil"
+	"math/rand"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,7 +23,16 @@ func MakeDataMB(n uint) []byte {
 	return buf
 }
 
+func RandomString(maxLen int) string {
+	buf := make([]byte, rand.Intn(maxLen)+1)
+	for i := range buf {
+		buf[i] = byte('a' + (rand.Intn(26)))
+	}
+	return string(buf)
+}
+
 // connect, send, recv, verify, disconnect
+// only works for One2One or Many2One
 func transmit(msg *string, serv *testutil.EchoServer, clnt *testutil.EchoClient) {
 	clnt.Connect()
 	err := clnt.Send(*msg)
@@ -110,4 +121,87 @@ func BenchmarkSingleForward500MB(b *testing.B) {
 	}
 }
 
-// TODO: TestManyManyConnections()
+// 600 servers listening on [10001,10600],
+// forward [10601,11200] to 1-5 dest in [10001,10600],
+// 600 clients connects to [10601,11200],
+// echo client sends 1 MB data, validate response
+func BenchmarkManyConnectionsForward1MB(b *testing.B) {
+	assert := assert.New(b)
+	clear()
+
+	// setup servers
+	servs := []*testutil.EchoServer{}
+	serverStart := uint64(10001)
+	serverEnd := serverStart - 1 + 600
+	for i := serverStart; i <= serverEnd; i++ {
+		s := testutil.NewEchoServer(i, RandomString(20))
+		servs = append(servs, s)
+		defer s.Quit()
+	}
+	b.Logf("%v servers created", len(servs))
+
+	tunnelStart := serverEnd + 1
+	tunnelEnd := tunnelStart - 1 + 600
+	m := make(map[uint64][]uint64)      // tunnels, source to a list of dests
+	serverCount := make(map[uint64]int) // number of dest for each source
+	for i := tunnelStart; i <= tunnelEnd; i++ {
+		dest := []uint64{}
+		n := rand.Intn(5) + 1 // number of dest
+		for j := 0; j < n; j++ {
+			d := serverStart + uint64(rand.Intn(int(serverEnd-serverStart)))
+			assert.True(d >= serverStart && d <= serverEnd)
+			dest = append(dest, d)
+		}
+		serverCount[i] = n
+		m[i] = dest
+	}
+
+	// create tunnels
+	for s, ds := range m {
+		for _, d := range ds {
+			_, err := tm.AddTunnel(core.Tunnel{
+				Name:   fmt.Sprintf("tfrom %v to %v", s, d),
+				Source: fmt.Sprintf("localhost:%v", s),
+				Dest:   fmt.Sprintf("localhost:%v", d),
+			})
+			if err != nil {
+				serverCount[s]--
+			}
+		}
+	}
+	list := tm.GetTunnels()
+	b.Logf("%v tunnels created\n", len(list))
+
+	// create all clients, then send data on each, recv all response
+	clnts := []*testutil.EchoClient{}
+	data := string(MakeDataMB(1))
+	msg := fmt.Sprintf("data from client: %v\n", data)
+	var wg sync.WaitGroup
+	for i := tunnelStart; i <= tunnelEnd; i++ {
+		wg.Add(1)
+		c := testutil.NewEchoClient(i)
+		clnts = append(clnts, c)
+		go func() {
+			assert.Nil(c.Connect())
+			assert.Nil(c.Send(msg))
+			for j := 0; j < serverCount[c.Port]; j++ {
+				c.Recv()
+			}
+			wg.Done()
+		}()
+	}
+	b.Logf("%v clients created", len(clnts))
+	wg.Wait()
+
+	totClntRecv := uint64(0)
+	for _, c := range clnts {
+		totClntRecv += c.TotRecv
+	}
+	totServReply := uint64(0)
+	for _, s := range servs {
+		totServReply += s.TotEcho
+	}
+
+	b.Logf("total client recv=%v, total server reply=%v", totClntRecv, totServReply)
+	assert.Equal(totClntRecv, totServReply)
+}

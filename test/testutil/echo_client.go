@@ -11,8 +11,11 @@ import (
 )
 
 type EchoClient struct {
-	name       string
-	port       string
+	Name    string
+	Port    uint64
+	TotRecv uint64
+	TotSend uint64
+
 	conn       net.Conn // for send only, do not read conn, read lineReader
 	lineReader *bufio.Reader
 }
@@ -20,20 +23,20 @@ type EchoClient struct {
 func NewEchoClient(port uint64) *EchoClient {
 	p := ":" + fmt.Sprint(port)
 	ret := &EchoClient{
-		name: "[client" + p + "] ",
-		port: p,
+		Name: "[client" + p + "] ",
+		Port: port,
 	}
 	return ret
 }
 
 func (ec *EchoClient) Connect() error {
-	conn, err := net.Dial("tcp", ec.port)
+	conn, err := net.Dial("tcp", ":"+fmt.Sprint(ec.Port))
 	ec.conn = conn
 	ec.lineReader = bufio.NewReader(ec.conn)
 	if err != nil {
-		core.Debugln(ec.name + "fail to connect to " + conn.RemoteAddr().String())
+		core.Debugln(ec.Name + "fail to connect to " + conn.RemoteAddr().String())
 	} else {
-		core.Debugln(ec.name + "connected to " + conn.RemoteAddr().String())
+		core.Debugln(ec.Name + "connected to " + conn.RemoteAddr().String())
 	}
 	return err
 }
@@ -41,7 +44,7 @@ func (ec *EchoClient) Connect() error {
 func (ec *EchoClient) Disconnect() {
 	ec.conn.Close()
 	ec.conn = nil
-	core.Debugln(ec.name + "disconnected" + ec.port)
+	core.Debugf(ec.Name+"disconnected %v", ec.Port)
 }
 
 // this would try to read a byte,
@@ -62,36 +65,37 @@ func (ec *EchoClient) IsConnected() bool {
 
 func (ec *EchoClient) Send(msg string) error {
 	if msg[len(msg)-1] != '\n' {
-		panic(ec.name + "trying to Send() without new line")
+		panic(ec.Name + "trying to Send() without new line")
 	}
 	if ec.conn == nil {
-		panic(ec.name + "trying to Send() without connection")
+		panic(ec.Name + "trying to Send() without connection")
 	}
 	nw, err := ec.conn.Write([]byte(msg))
 	if nw != len(msg) {
-		return fmt.Errorf("partial write")
+		return fmt.Errorf("partial write: %v", err)
 	}
-	core.Debugln(ec.name + "send: " + msg)
+	core.Debugln(ec.Name + "send: " + msg)
 	return err
 }
 
 // read until new line or EOF
 func (ec *EchoClient) Recv() string {
 	if ec.lineReader == nil {
-		panic(ec.name + "trying to Recv() without connection")
+		panic(ec.Name + "trying to Recv() without connection")
 	}
 
 	reply := []byte{}
 	// core.Debugln(ec.name + "reading")
 	bytes, err := ec.lineReader.ReadBytes(byte('\n'))
-	core.Debugf(ec.name+"read %v bytes\n", len(bytes))
+	core.Debugf(ec.Name+"read %v bytes\n", len(bytes))
 	if err == nil || errors.Is(err, io.EOF) {
 		reply = append(reply, bytes...)
 	} else {
-		panic(ec.name + err.Error())
+		panic(ec.Name + err.Error())
 	}
 
 	s := string(reply)
-	core.Debugln(ec.name + "recv: " + s[:len(s)-1] + "\\n")
-	return string(reply)
+	core.Debugln(ec.Name + "recv: " + s[:len(s)-1] + "\\n")
+	ec.TotRecv += uint64(len(s))
+	return s
 }
