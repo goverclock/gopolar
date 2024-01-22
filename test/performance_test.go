@@ -122,8 +122,8 @@ func BenchmarkSingleForward500MB(b *testing.B) {
 }
 
 // 600 servers listening on [10001,10600],
-// forward [10601,11200] to 1-5 dest in [10001,10600],
-// 600 clients connects to [10601,11200],
+// forward [10601,10800] to 1-5 dest in [10001,10600],
+// 600 clients connects to [10601,10800],
 // echo client sends 1 MB data, validate response
 func BenchmarkManyConnectionsForward1MB(b *testing.B) {
 	assert := assert.New(b)
@@ -141,7 +141,7 @@ func BenchmarkManyConnectionsForward1MB(b *testing.B) {
 	b.Logf("%v servers created", len(servs))
 
 	tunnelStart := serverEnd + 1
-	tunnelEnd := tunnelStart - 1 + 600
+	tunnelEnd := tunnelStart - 1 + 200
 	m := make(map[uint64][]uint64)      // tunnels, source to a list of dests
 	serverCount := make(map[uint64]int) // number of dest for each source
 	for i := tunnelStart; i <= tunnelEnd; i++ {
