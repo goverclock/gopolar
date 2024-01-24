@@ -3,8 +3,8 @@ package core
 import (
 	"fmt"
 	"log"
-	"net"
 	"net/netip"
+	"os"
 	"sort"
 	"sync"
 
@@ -15,9 +15,8 @@ import (
 type TunnelManager struct {
 	tunnels   map[uint64]*Tunnel            // ID -> source
 	forwarder map[netip.AddrPort]*Forwarder // source -> forwarder, only maintains running tunnels
-	sock      net.Listener
 	router    *gin.Engine
-	cfg       *Config
+	cfg *Config
 
 	mu sync.Mutex
 }
@@ -30,7 +29,6 @@ func NewTunnelManager(readConfig bool) *TunnelManager {
 		tunnels:   make(map[uint64]*Tunnel),
 		forwarder: make(map[netip.AddrPort]*Forwarder),
 	}
-	ret.setupSock()
 	ret.setupRouter()
 
 	if readConfig {
@@ -45,7 +43,11 @@ func NewTunnelManager(readConfig bool) *TunnelManager {
 }
 
 func (tm *TunnelManager) Run() {
-	tm.router.RunListener(tm.sock)
+	go tm.router.Run()
+
+	os.Remove("/tmp/gopolar.sock")
+	// this creates the unix domain socket
+	tm.router.RunUnix("/tmp/gopolar.sock")
 }
 
 // tm.mu must be held,

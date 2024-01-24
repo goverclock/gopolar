@@ -2,37 +2,21 @@ package core
 
 import (
 	"fmt"
-	"log"
-	"net"
 	"net/http"
-	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-// set up unix domain socket and signal handler for clean up
-func (tm *TunnelManager) setupSock() {
-	os.Remove("/tmp/gopolar.sock")
-	sock, err := net.Listen("unix", "/tmp/gopolar.sock")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	tm.sock = sock
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		os.Remove("/tmp/gopolar.sock")
-		os.Exit(1)
-	}()
-}
-
 func (tm *TunnelManager) setupRouter() {
 	router := gin.New() // use gin.Default() for request log, gin.New() to omit
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:  []string{"*"},
+		AllowMethods:  []string{"*"},
+		AllowHeaders:  []string{"*"},
+		ExposeHeaders: []string{"*"},
+	}))
 
 	router.GET("/tunnels/list", func(ctx *gin.Context) {
 		var response struct {

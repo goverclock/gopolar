@@ -12,6 +12,18 @@ type Tunnel struct {
 }
 ```
 
+### Response
+
+```
+{
+    success: true/false,
+    err_msg: "error message",
+    data: {...},
+}
+```
+
+### API
+
 **GET /tunnels/list**
 
 Get all tunnels from core, sorted by tunnel ID.
