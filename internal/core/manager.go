@@ -16,7 +16,7 @@ type TunnelManager struct {
 	tunnels   map[uint64]*Tunnel            // ID -> source
 	forwarder map[netip.AddrPort]*Forwarder // source -> forwarder, only maintains running tunnels
 	router    *gin.Engine
-	cfg *Config
+	cfg       *Config
 
 	mu sync.Mutex
 }
@@ -202,8 +202,10 @@ func (tm *TunnelManager) RemoveTunnel(id uint64) error {
 		return fmt.Errorf("tunnel %v does not exist", id)
 	}
 
-	// update forward routine
-	tm.removeForwardL(t.MustParseSource(), t.Dest)
+	// if tunnel is not enabled, it's already not in forwarder
+	if t.Enable {
+		tm.removeForwardL(t.MustParseSource(), t.Dest)
+	}
 
 	delete(tm.tunnels, id)
 
