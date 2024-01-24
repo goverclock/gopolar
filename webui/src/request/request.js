@@ -4,7 +4,7 @@ import { ElMessage } from "element-plus";
 export default function request(options) {
     return new Promise((resolve, reject) => {
         const instance = axios.create({
-            baseURL: "http://localhost:8080",
+            baseURL: "http://" + window.location.hostname + ":7070",
             headers: {
                 'Content-Type': 'application/json',
             },

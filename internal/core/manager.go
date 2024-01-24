@@ -43,7 +43,9 @@ func NewTunnelManager(readConfig bool) *TunnelManager {
 }
 
 func (tm *TunnelManager) Run() {
-	go tm.router.Run()
+	// in 1991, "Gopher" protocol uses 70 as its port
+	// see https://zh.wikipedia.org/wiki/Gopher_(%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE)
+	go tm.router.Run(":7070")
 
 	os.Remove("/tmp/gopolar.sock")
 	// this creates the unix domain socket
