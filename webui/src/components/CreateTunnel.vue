@@ -48,9 +48,24 @@ const rules = computed(() => {
             validator: (rule, value, callback) => {
                 if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?):(6553[0-5]|655[0-2][0-9]|65[0-4][0-9][0-9]|6[0-4][0-9][0-9][0-9][0-9]|[1-5](\d){4}|[1-9](\d){0,3})$/.test(value)) {
                     callback()
-                } else {
-                    callback(new Error("invalid address"))
+                    return;
                 }
+                // may contain "localhost"
+                let sp = value.split(":")
+                if (sp.length != 2) {
+                    callback(new Error("invalid address"))
+                    return;
+                }
+                if (sp[0] != "localhost") {
+                    callback(new Error("invalid address"))
+                    return;
+                }
+                let port = Number(sp[1])
+                if (port <= 0 || port > 65535) {
+                    callback(new Error("invalid address"))
+                    return;
+                }
+                callback()
             }
         },
     }
