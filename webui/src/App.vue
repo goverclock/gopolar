@@ -9,8 +9,6 @@
   <br>
   <br>
 
-  <!-- <HelloWorld msg="Vite + Vue" /> -->
-  <!-- TODO: create, refresh button -->
   <el-button link type="info" :icon="Plus" @click="createViewVisible = true">new tunnel</el-button>
   <el-button link type="info" :icon="Refresh" @click="handleRefresh">refresh</el-button>
 
@@ -28,20 +26,23 @@
     <el-table-column align="center" fixed="right" label="Operations" width="250px">
       <template v-slot="{ row }">
         <el-button link type="primary" size="small" @click="handleToggle(row)">Toggle</el-button>
-        <el-button link type="primary" size="small">Edit</el-button>
+        <el-button link type="primary" size="small" @click="selectedTunnel = row; editViewVisible = true">Edit</el-button>
         <el-button link type="danger" size="small" @click="handleDelete(row)">Delete</el-button>
       </template>
     </el-table-column>
   </el-table>
 
   <CreateTunnel v-model="createViewVisible" @off="createViewVisible = false" @refresh="handleRefresh" />
+  <EditTunnel v-model="editViewVisible" :tunnel="selectedTunnel" @off="editViewVisible = false"
+    @refresh="handleRefresh" />
 </template>
 
 <script setup>
 import { Refresh, Plus } from '@element-plus/icons-vue'
 import { ElTag } from 'element-plus';
-import { AboutReq, DeleteTunnelReq, ToggleTunnelReq, EditTunnelReq, CreateTunnelReq, GetTunnelListReq } from './request/api'
+import { AboutReq, DeleteTunnelReq, ToggleTunnelReq, GetTunnelListReq } from './request/api'
 import CreateTunnel from './components/CreateTunnel.vue'
+import EditTunnel from './components/EditTunnel.vue'
 
 const about = ref({})
 AboutReq().then(res => {
@@ -90,17 +91,8 @@ function handleDelete(row) {
 }
 
 const createViewVisible = ref(false)
-
-// CreateTunnelReq("fromwebui", "localhost:2332", "localhost:123")
-//   .then(res => {
-//     console.log(res)
-//   }).catch((e) => { console.error(e) })
-
-// EditTunnelReq(2, "hehe", "localhost:231", "1.1.1.1:3")
-//   .then(res => {
-//     console.log(res)
-//   }).catch((e) => { console.error(e) })
-
+const editViewVisible = ref(false)
+const selectedTunnel = ref({})
 
 </script>
 
