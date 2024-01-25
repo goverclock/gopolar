@@ -38,7 +38,7 @@ type UIModel struct {
 	helpMsg string
 
 	state sessionState
-	end *CLIEnd
+	end   *CLIEnd
 }
 
 func NewUIModel(end *CLIEnd) *UIModel {
@@ -157,7 +157,7 @@ func (m UIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			err = m.end.ToggleTunnel(id)
 			strOk := "Stopped"
 			strFail := "stop"
-			if sr[4] == "STOP" {
+			if sr[4] == "STOPPED" {
 				strOk = "Started"
 				strFail = "start"
 			}

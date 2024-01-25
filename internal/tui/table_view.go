@@ -37,7 +37,7 @@ func NewTableModel(tunnelList []core.Tunnel) *table.Model {
 func listToRows(tunnelList []core.Tunnel) []table.Row {
 	rows := []table.Row{}
 	for _, t := range tunnelList {
-		status := "STOP"
+		status := "STOPPED"
 		if t.Enable {
 			status = "RUNNING"
 		}
