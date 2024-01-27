@@ -110,7 +110,7 @@ func TestMany2One(t *testing.T) {
 }
 
 // client should fail to connect when no server is running
-// TODO: forwarder need a way to detect TCP dial while not accepting it,
+// TODO(pending): forwarder need a way to detect TCP dial while not accepting it,
 // currently forwarder always accepts client dial, then close it if no,
 // dest can be reached
 func TestNoServer(t *testing.T) {
@@ -159,4 +159,4 @@ func TestDisconnect(t *testing.T) {
 	assert.False(clnt33.IsConnected())
 }
 
-// TODO: TestSilentServer, server always close connections immediately
+// TODO(pending): TestSilentServer, server always close connections immediately

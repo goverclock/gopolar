@@ -89,7 +89,7 @@ function handleConfirm() {
         EditTunnelReq(props.tunnel.id, name, "localhost:" + form.source_port, form.dest)
             .then(res => {
                 ElMessage({ message: `Tunnel ${name}(ID=${props.tunnel.id}) updated`, type: "success" })
-                emit("refresh") // TODO: update single tunnel
+                emit("refresh") // TODO(pending): update single tunnel
                 emit("off")
             }).catch((e) => { console.error(e) })
     })

@@ -9,7 +9,7 @@ import (
 )
 
 func setup() {
-	log.SetPrefix("[gpcli]")
+	log.SetPrefix("[gptui] ")
 	log.SetFlags(0)
 }
 

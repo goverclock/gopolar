@@ -6,17 +6,20 @@ import (
 	"strconv"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
 func (tm *TunnelManager) setupRouter() {
-	router := gin.New() // use gin.Default() for request log, gin.New() to omit
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New() // use gin.Default() for http log, gin.New() to omit
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:  []string{"*"},
 		AllowMethods:  []string{"*"},
 		AllowHeaders:  []string{"*"},
 		ExposeHeaders: []string{"*"},
 	}))
+	router.Use(static.Serve("/", static.LocalFile("./gpwebui", false)))
 
 	router.GET("/tunnels/list", func(ctx *gin.Context) {
 		var response struct {

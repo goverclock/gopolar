@@ -77,7 +77,7 @@ function handleToggle(row) {
       ElMessage({ message: `Tunnel ${row.name}(ID=${row.id}) stopped`, type: "success" })
     }
 
-    // TODO: need new API for gopolar core: GetTunnelInfo(id)
+    // TODO(pending): need new API for gopolar core: GetTunnelInfo(id)
     // or else the whole table blinks
     handleRefresh()
   }).catch(e => { console.error(e) })

@@ -18,7 +18,7 @@ var mock_router *gin.Engine
 
 func TestMain(m *testing.M) {
 	// init
-	log.SetPrefix("[gpcli_test]")
+	log.SetPrefix("[gptui_test]")
 	log.Println("listening on unix domain socket")
 	log.SetFlags(0)
 	os.Remove("/tmp/gopolar.sock")
