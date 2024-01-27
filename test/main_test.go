@@ -1,9 +1,10 @@
 package gopolar_test
 
 import (
-	"gopolar/internal/core"
 	"os"
 	"testing"
+
+	"github.com/goverclock/gopolar/internal/core"
 )
 
 var tm *core.TunnelManager

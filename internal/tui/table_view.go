@@ -1,8 +1,9 @@
 package tui
 
 import (
-	"gopolar/internal/core"
 	"strconv"
+
+	"github.com/goverclock/gopolar/internal/core"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"

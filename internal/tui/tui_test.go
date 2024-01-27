@@ -2,11 +2,12 @@ package tui
 
 import (
 	"fmt"
-	"gopolar/internal/core"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
+
+	"github.com/goverclock/gopolar/internal/core"
 
 	"github.com/gin-gonic/gin"
 )

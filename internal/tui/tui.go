@@ -2,11 +2,12 @@ package tui
 
 import (
 	"fmt"
-	"gopolar/internal/core"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/goverclock/gopolar/internal/core"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"

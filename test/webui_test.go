@@ -2,10 +2,11 @@ package gopolar_test
 
 import (
 	"fmt"
-	"gopolar/internal/core"
-	"gopolar/internal/tui"
 	"math/rand"
 	"testing"
+
+	"github.com/goverclock/gopolar/internal/core"
+	"github.com/goverclock/gopolar/internal/tui"
 
 	"github.com/stretchr/testify/assert"
 )

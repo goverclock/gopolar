@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gopolar/internal/core"
+	"github.com/goverclock/gopolar/internal/core"
 )
 
 func main() {

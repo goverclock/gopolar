@@ -1,9 +1,10 @@
 package main
 
 import (
-	"gopolar/internal/tui"
 	"log"
 	"os"
+
+	"github.com/goverclock/gopolar/internal/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopolar/internal/core"
 	"io"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/goverclock/gopolar/internal/core"
 
 	"github.com/mitchellh/mapstructure"
 )

@@ -3,10 +3,11 @@ package testutil
 import (
 	"bufio"
 	"fmt"
-	"gopolar/internal/core"
 	"net"
 	"os"
 	"sync"
+
+	"github.com/goverclock/gopolar/internal/core"
 )
 
 type EchoServer struct {

@@ -1,4 +1,4 @@
-module gopolar
+module github.com/goverclock/gopolar
 
 go 1.20
 

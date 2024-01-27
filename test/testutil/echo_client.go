@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"gopolar/internal/core"
 	"io"
 	"net"
 	"time"
+
+	"github.com/goverclock/gopolar/internal/core"
 )
 
 type EchoClient struct {

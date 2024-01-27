@@ -1,13 +1,14 @@
 package tui
 
 import (
-	"gopolar/internal/core"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/goverclock/gopolar/internal/core"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
