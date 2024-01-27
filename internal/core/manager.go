@@ -101,7 +101,6 @@ func tunnelMapToListL(m map[uint64]*Tunnel) []Tunnel {
 
 }
 
-// new tunnel is enabled by default
 // returns error if tunnel already exists
 func (tm *TunnelManager) AddTunnel(nt Tunnel) (uint64, error) {
 	tm.mu.Lock()
@@ -140,11 +139,12 @@ func (tm *TunnelManager) AddTunnel(nt Tunnel) (uint64, error) {
 
 	// add the tunnel
 	nt.ID = newID
-	nt.Enable = true
 	tm.tunnels[newID] = &nt
 
 	// update forward
-	tm.addForwardL(src, nt.Dest)
+	if nt.Enable {
+		tm.addForwardL(src, nt.Dest)
+	}
 
 	tm.saveL()
 	return newID, nil

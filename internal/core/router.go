@@ -49,7 +49,7 @@ func (tm *TunnelManager) setupRouter() {
 		newTunnel := Tunnel{
 			// ID:     ,
 			Name:   request.Name,
-			Enable: false,
+			Enable: true, // new tunnels are enabled by default
 			Source: request.Source,
 			Dest:   request.Dest,
 		}
