@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-contrib/cors"
@@ -19,7 +20,10 @@ func (tm *TunnelManager) setupRouter() {
 		AllowHeaders:  []string{"*"},
 		ExposeHeaders: []string{"*"},
 	}))
-	router.Use(static.Serve("/", static.LocalFile("./gpwebui", false)))
+
+	// webui integration
+	webuiPath := os.Getenv("GOPATH") + "/bin/gpwebui"
+	router.Use(static.Serve("/", static.LocalFile(webuiPath, false)))
 
 	router.GET("/tunnels/list", func(ctx *gin.Context) {
 		var response struct {
