@@ -1,6 +1,6 @@
 <template>
   <div class="header-cont">
-    <img src="./assets/gopolar.jpg">
+    <img src="./assets/gopolar.png">
     <h1>
       gopolar
     </h1>
