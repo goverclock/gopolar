@@ -41,12 +41,12 @@ func (es *EchoServer) run() {
 	for {
 		conn, err := es.listener.Accept()
 		if err != nil {
+			core.Debugf(es.Name+"quit(err=%v)\n", err)
 			break
 		}
 		core.Debugln(es.Name + "connected to " + conn.RemoteAddr().String())
 		go es.handleConnection(conn)
 	}
-	core.Debugln(es.Name + "quit")
 }
 
 func (es *EchoServer) Quit() {

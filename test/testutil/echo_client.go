@@ -31,14 +31,15 @@ func NewEchoClient(port uint64) *EchoClient {
 }
 
 func (ec *EchoClient) Connect() error {
-	conn, err := net.Dial("tcp", ":"+fmt.Sprint(ec.Port))
+	p := ":" + fmt.Sprint(ec.Port)
+	conn, err := net.Dial("tcp", p)
+	if err != nil {
+		core.Debugln(ec.Name + "fail to connect to " + p)
+	} else {
+		core.Debugln(ec.Name + "connected to " + p)
+	}
 	ec.conn = conn
 	ec.lineReader = bufio.NewReader(ec.conn)
-	if err != nil {
-		core.Debugln(ec.Name + "fail to connect to " + conn.RemoteAddr().String())
-	} else {
-		core.Debugln(ec.Name + "connected to " + conn.RemoteAddr().String())
-	}
 	return err
 }
 

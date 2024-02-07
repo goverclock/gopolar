@@ -10,48 +10,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// forward request from 33 to 88
+// forward request from 3300 to 8800
 func TestOne2One(t *testing.T) {
 	assert := assert.New(t)
 	clear()
 
 	_, err := tm.AddTunnel(core.Tunnel{
-		Name:   "tfrom 33 to 88",
-		Source: "localhost:33",
-		Dest:   "localhost:88",
+		Name:   "tfrom 3300 to 8800",
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
 	})
 	assert.Nil(err)
 
 	prefix := "hello"
-	serv88 := testutil.NewEchoServer(88, prefix)
-	defer serv88.Quit()
+	serv8800 := testutil.NewEchoServer(8800, prefix)
+	defer serv8800.Quit()
 
-	clnt33 := testutil.NewEchoClient(33)
-	err = clnt33.Connect()
+	clnt3300 := testutil.NewEchoClient(3300)
+	err = clnt3300.Connect()
 	assert.Nil(err)
 
 	msg := "asdfg\n"
-	err = clnt33.Send(msg)
+	err = clnt3300.Send(msg)
 	assert.Nil(err)
-	reply := clnt33.Recv()
+	reply := clnt3300.Recv()
 	assert.Equal(prefix+msg, reply)
 }
 
-// forward request from 33 to 88, 89, 90, ..., 100
+// forward request from 3300 to 8800, 89, 90, ..., 100
 func TestOne2Many(t *testing.T) {
 	assert := assert.New(t)
 	clear()
 
 	msg := "what good lol\n"
 	expectRecv := 0
-	start := 88
+	start := 8800
 	end := 100
 	for i := uint64(start); i <= uint64(end); i++ {
 		// tunnels
 		p := fmt.Sprint(i)
 		tn := core.Tunnel{
-			Name:   "tfrom 33 to " + p,
-			Source: "localhost:33",
+			Name:   "tfrom 3300 to " + p,
+			Source: "localhost:3300",
 			Dest:   "localhost:" + p,
 		}
 		_, err := tm.AddTunnel(tn)
@@ -64,39 +64,39 @@ func TestOne2Many(t *testing.T) {
 		expectRecv += len(prefix) + len(msg)
 	}
 
-	clnt33 := testutil.NewEchoClient(33)
-	err := clnt33.Connect()
+	clnt3300 := testutil.NewEchoClient(3300)
+	err := clnt3300.Connect()
 	assert.Nil(err)
 
-	err = clnt33.Send(msg)
+	err = clnt3300.Send(msg)
 	assert.Nil(err)
 
 	// should read multiple times, since each Recv() returns on '\n'
 	reply := ""
 	for i := 0; i < end-start+1; i++ {
-		reply += clnt33.Recv()
+		reply += clnt3300.Recv()
 	}
 	assert.Equal(expectRecv, len(reply))
 }
 
-// forward request from 88, 89, 90, ..., 100 to 33
+// forward request from 8800, 89, 90, ..., 100 to 3300
 func TestMany2One(t *testing.T) {
 	assert := assert.New(t)
 	clear()
 
 	prefix := "heyqasdjklqjweoi"
-	serv33 := testutil.NewEchoServer(33, prefix)
-	defer serv33.Quit()
+	serv3300 := testutil.NewEchoServer(3300, prefix)
+	defer serv3300.Quit()
 
-	start := 88
+	start := 8800
 	end := 100
 	for i := uint64(start); i <= uint64(end); i++ {
 		// tunnels
 		p := fmt.Sprint(i)
 		tn := core.Tunnel{
-			Name:   fmt.Sprintf("tfrom %v to 33", i),
+			Name:   fmt.Sprintf("tfrom %v to 3300", i),
 			Source: "localhost:" + p,
-			Dest:   "localhost:33",
+			Dest:   "localhost:3300",
 		}
 		_, err := tm.AddTunnel(tn)
 		assert.Nil(err)
@@ -120,12 +120,12 @@ func TestNoServer(t *testing.T) {
 
 	_, err := tm.AddTunnel(core.Tunnel{
 		Name:   "dummy",
-		Source: "localhost:33",
-		Dest:   "localhost:88",
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
 	})
 	assert.Nil(err)
 
-	clnt := testutil.NewEchoClient(33)
+	clnt := testutil.NewEchoClient(3300)
 	// assert.NotEqual(nil, clnt.Connect())
 	clnt.Connect()
 }
@@ -136,28 +136,28 @@ func TestDisconnect(t *testing.T) {
 	clear()
 
 	id, err := tm.AddTunnel(core.Tunnel{
-		Name:   "33to88",
-		Source: "localhost:33",
-		Dest:   "localhost:88",
+		Name:   "3300to8800",
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
 	})
 	assert.Nil(err)
 
-	prefix := "this is a server running on port 88"
-	serv88 := testutil.NewEchoServer(88, prefix)
-	defer serv88.Quit()
+	prefix := "this is a server running on port 8800"
+	serv8800 := testutil.NewEchoServer(8800, prefix)
+	defer serv8800.Quit()
 
-	clnt33 := testutil.NewEchoClient(33)
-	assert.False(clnt33.IsConnected())
-	clnt33.Connect()
-	msg := "this is a message from clnt 33\n"
-	assert.Nil(clnt33.Send(msg))
-	assert.Equal(prefix+msg, clnt33.Recv())
-	assert.True(clnt33.IsConnected())
+	clnt3300 := testutil.NewEchoClient(3300)
+	assert.False(clnt3300.IsConnected())
+	clnt3300.Connect()
+	msg := "this is a message from clnt 3300\n"
+	assert.Nil(clnt3300.Send(msg))
+	assert.Equal(prefix+msg, clnt3300.Recv())
+	assert.True(clnt3300.IsConnected())
 
 	// remove the tunnel
 	assert.Nil(tm.RemoveTunnel(id))
 
-	assert.False(clnt33.IsConnected())
+	assert.False(clnt3300.IsConnected())
 }
 
 // TODO(pending): TestSilentServer, server always close connections immediately
