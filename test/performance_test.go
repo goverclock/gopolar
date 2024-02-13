@@ -84,6 +84,7 @@ func BenchmarkSingleForward100MB(b *testing.B) {
 
 	_, err := tm.AddTunnel(core.Tunnel{
 		Name:   "tfrom 33 to 88",
+		Enable: true,
 		Source: "localhost:33",
 		Dest:   "localhost:88",
 	})
@@ -106,6 +107,7 @@ func BenchmarkSingleForward500MB(b *testing.B) {
 
 	_, err := tm.AddTunnel(core.Tunnel{
 		Name:   "tfrom 33 to 88",
+		Enable: true,
 		Source: "localhost:33",
 		Dest:   "localhost:88",
 	})
@@ -162,6 +164,7 @@ func BenchmarkManyConnectionsForward1MB(b *testing.B) {
 		for _, d := range ds {
 			_, err := tm.AddTunnel(core.Tunnel{
 				Name:   fmt.Sprintf("tfrom %v to %v", s, d),
+				Enable: true,
 				Source: fmt.Sprintf("localhost:%v", s),
 				Dest:   fmt.Sprintf("localhost:%v", d),
 			})

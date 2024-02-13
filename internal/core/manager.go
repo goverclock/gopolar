@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/netip"
@@ -47,9 +48,15 @@ func (tm *TunnelManager) Run() {
 	// see https://zh.wikipedia.org/wiki/Gopher_(%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE)
 	go tm.router.Run(":7070")
 
-	os.Remove("/tmp/gopolar.sock")
+	err := os.Remove("/tmp/gopolar.sock")
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		panic(err)
+	}
 	// this creates the unix domain socket
-	tm.router.RunUnix("/tmp/gopolar.sock")
+	err = tm.router.RunUnix("/tmp/gopolar.sock")
+	if err != nil {
+		panic(err)
+	}
 }
 
 // tm.mu must be held,

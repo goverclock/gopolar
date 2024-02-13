@@ -46,7 +46,7 @@ func (fwd *Forwarder) Add(d string) {
 	for cs := range fwd.connections {
 		connD, err := net.Dial("tcp", d)
 		if err != nil {
-			Debugf("[forward] fail to dial dest=%v for src=%v\n", d, fwd.src.Addr())
+			Debugf("[forward] fail to dial dest=%v for src=%v, err=%v\n", d, fwd.src.Addr(), err)
 		}
 		fwd.connections[cs][d] = &connD
 		Debugf("[forward] added dest=%v for src=%v\n", d, (*cs).RemoteAddr())
@@ -113,7 +113,7 @@ func (fwd *Forwarder) listen() {
 		for _, d := range fwd.dest { // dial all dest for connS
 			connD, err := net.Dial("tcp", d)
 			if err != nil {
-				Debugf("[forward] fail to dial dest=%v for src=%v\n", d, src.Addr())
+				Debugf("[forward] fail to dial dest=%v for src=%v, err=%v\n", d, src.Addr(), err)
 				continue
 			}
 			Debugf("[forward] src=%v dialed %v\n", src.Addr(), d)

@@ -34,7 +34,7 @@ func (ec *EchoClient) Connect() error {
 	p := ":" + fmt.Sprint(ec.Port)
 	conn, err := net.Dial("tcp", p)
 	if err != nil {
-		core.Debugln(ec.Name + "fail to connect to " + p)
+		core.Debugf(ec.Name+"fail to connect to %v, err=%v\n", p, err)
 	} else {
 		core.Debugln(ec.Name + "connected to " + p)
 	}

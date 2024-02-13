@@ -17,6 +17,7 @@ func TestOne2One(t *testing.T) {
 
 	_, err := tm.AddTunnel(core.Tunnel{
 		Name:   "tfrom 3300 to 8800",
+		Enable: true,
 		Source: "localhost:3300",
 		Dest:   "localhost:8800",
 	})
@@ -37,7 +38,7 @@ func TestOne2One(t *testing.T) {
 	assert.Equal(prefix+msg, reply)
 }
 
-// forward request from 3300 to 8800, 89, 90, ..., 100
+// forward request from 3300 to 8800, 8801, 8802, ..., 8900
 func TestOne2Many(t *testing.T) {
 	assert := assert.New(t)
 	clear()
@@ -45,12 +46,13 @@ func TestOne2Many(t *testing.T) {
 	msg := "what good lol\n"
 	expectRecv := 0
 	start := 8800
-	end := 100
+	end := start + 100
 	for i := uint64(start); i <= uint64(end); i++ {
 		// tunnels
 		p := fmt.Sprint(i)
 		tn := core.Tunnel{
 			Name:   "tfrom 3300 to " + p,
+			Enable: true,
 			Source: "localhost:3300",
 			Dest:   "localhost:" + p,
 		}
@@ -95,6 +97,7 @@ func TestMany2One(t *testing.T) {
 		p := fmt.Sprint(i)
 		tn := core.Tunnel{
 			Name:   fmt.Sprintf("tfrom %v to 3300", i),
+			Enable: true,
 			Source: "localhost:" + p,
 			Dest:   "localhost:3300",
 		}
@@ -120,6 +123,7 @@ func TestNoServer(t *testing.T) {
 
 	_, err := tm.AddTunnel(core.Tunnel{
 		Name:   "dummy",
+		Enable: true,
 		Source: "localhost:3300",
 		Dest:   "localhost:8800",
 	})
@@ -137,6 +141,7 @@ func TestDisconnect(t *testing.T) {
 
 	id, err := tm.AddTunnel(core.Tunnel{
 		Name:   "3300to8800",
+		Enable: true,
 		Source: "localhost:3300",
 		Dest:   "localhost:8800",
 	})
