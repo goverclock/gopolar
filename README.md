@@ -10,7 +10,7 @@ TCP port forwarding tool with both TUI and Web UI support.
 
 Simply `go install github.com/goverclock/gopolar/cmd/...@latest` would install gopolar core & TUI, which is enough for basic usage.
 
-The Web UI has to be built with [ install.sh ](./install.sh).
+The Web UI has to be built with [ install.sh ](./install.sh). [ Vite ](https://vitejs.dev/) is required to build the UI.
 
 # Usage
 
