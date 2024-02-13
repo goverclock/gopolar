@@ -69,16 +69,17 @@ func (tm *TunnelManager) saveL() {
 // tm.mu must be held,
 // create new forwarder if needed,
 // then add the forward
-func (tm *TunnelManager) addForwardL(src netip.AddrPort, dest string) {
+func (tm *TunnelManager) addForwardL(src netip.AddrPort, dest string) error {
 	if tm.forwarder[src] == nil {
 		fwd, err := NewForwarder(src)
 		if err != nil {
 			Debugf("[manager] fail to create new forwarder for src=%v: %v\n", src, err)
-			return
+			return err
 		}
 		tm.forwarder[src] = fwd
 	}
 	tm.forwarder[src].Add(dest)
+	return nil
 }
 
 // tm.mu must be held,
@@ -144,15 +145,17 @@ func (tm *TunnelManager) AddTunnel(nt Tunnel) (uint64, error) {
 		}
 	}
 
+	// update forward
+	if nt.Enable {
+		err := tm.addForwardL(src, nt.Dest)
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	// add the tunnel
 	nt.ID = newID
 	tm.tunnels[newID] = &nt
-
-	// update forward
-	if nt.Enable {
-		tm.addForwardL(src, nt.Dest)
-	}
-
 	tm.saveL()
 	return newID, nil
 }
@@ -173,7 +176,10 @@ func (tm *TunnelManager) ChangeTunnel(id uint64, newName string, newSource strin
 		tm.removeForwardL(t.MustParseSource(), t.Dest)
 		t.Source = newSource
 		t.Dest = newDest
-		tm.addForwardL(t.MustParseSource(), newDest)
+		err := tm.addForwardL(t.MustParseSource(), newDest)
+		if err != nil {
+			return err
+		}
 	}
 
 	tm.saveL()
@@ -189,14 +195,17 @@ func (tm *TunnelManager) ToggleTunnel(id uint64) error {
 	if !ok {
 		return fmt.Errorf("tunnel %v does not exist", id)
 	}
-	t.Enable = !t.Enable
 
 	// update forwarder routine
-	if t.Enable {
-		tm.addForwardL(t.MustParseSource(), t.Dest)
+	if !t.Enable {
+		err := tm.addForwardL(t.MustParseSource(), t.Dest)
+		if err != nil {
+			return err
+		}
 	} else {
 		tm.removeForwardL(t.MustParseSource(), t.Dest)
 	}
+	t.Enable = !t.Enable
 
 	tm.saveL()
 	return nil
