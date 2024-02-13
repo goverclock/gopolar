@@ -51,14 +51,14 @@ func transmit(msg *string, serv *testutil.EchoServer, clnt *testutil.EchoClient)
 func BenchmarkSingleDirect100MB(b *testing.B) {
 	clear()
 
-	serv88 := testutil.NewEchoServer(88, "hello")
-	defer serv88.Quit()
-	clnt88 := testutil.NewEchoClient(88)
+	serv8800 := testutil.NewEchoServer(8800, "hello")
+	defer serv8800.Quit()
+	clnt8800 := testutil.NewEchoClient(8800)
 
 	data := string(MakeDataMB(100))
 	msg := fmt.Sprintf("data from client: %v\n", data)
 	for i := 0; i < b.N; i++ {
-		transmit(&msg, serv88, clnt88)
+		transmit(&msg, serv8800, clnt8800)
 	}
 }
 
@@ -66,14 +66,14 @@ func BenchmarkSingleDirect100MB(b *testing.B) {
 func BenchmarkSingleDirect500MB(b *testing.B) {
 	clear()
 
-	serv88 := testutil.NewEchoServer(88, "hello")
-	defer serv88.Quit()
-	clnt88 := testutil.NewEchoClient(88)
+	serv8800 := testutil.NewEchoServer(8800, "hello")
+	defer serv8800.Quit()
+	clnt8800 := testutil.NewEchoClient(8800)
 
 	data := string(MakeDataMB(500))
 	msg := fmt.Sprintf("data from client: %v\n", data)
 	for i := 0; i < b.N; i++ {
-		transmit(&msg, serv88, clnt88)
+		transmit(&msg, serv8800, clnt8800)
 	}
 }
 
@@ -83,21 +83,21 @@ func BenchmarkSingleForward100MB(b *testing.B) {
 	clear()
 
 	_, err := tm.AddTunnel(core.Tunnel{
-		Name:   "tfrom 33 to 88",
+		Name:   "tfrom 3300 to 8800",
 		Enable: true,
-		Source: "localhost:33",
-		Dest:   "localhost:88",
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
 	})
 	assert.Nil(err)
 
-	serv88 := testutil.NewEchoServer(88, "hahaha")
-	defer serv88.Quit()
-	clnt33 := testutil.NewEchoClient(33)
+	serv8800 := testutil.NewEchoServer(8800, "hahaha")
+	defer serv8800.Quit()
+	clnt3300 := testutil.NewEchoClient(3300)
 
 	data := string(MakeDataMB(100))
 	msg := fmt.Sprintf("data from client: %v\n", data)
 	for i := 0; i < b.N; i++ {
-		transmit(&msg, serv88, clnt33)
+		transmit(&msg, serv8800, clnt3300)
 	}
 }
 
@@ -106,21 +106,21 @@ func BenchmarkSingleForward500MB(b *testing.B) {
 	clear()
 
 	_, err := tm.AddTunnel(core.Tunnel{
-		Name:   "tfrom 33 to 88",
+		Name:   "tfrom 3300 to 8800",
 		Enable: true,
-		Source: "localhost:33",
-		Dest:   "localhost:88",
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
 	})
 	assert.Nil(err)
 
-	serv88 := testutil.NewEchoServer(88, "hahaha")
-	defer serv88.Quit()
-	clnt33 := testutil.NewEchoClient(33)
+	serv8800 := testutil.NewEchoServer(8800, "hahaha")
+	defer serv8800.Quit()
+	clnt3300 := testutil.NewEchoClient(3300)
 
 	data := string(MakeDataMB(500))
 	msg := fmt.Sprintf("data from client: %v\n", data)
 	for i := 0; i < b.N; i++ {
-		transmit(&msg, serv88, clnt33)
+		transmit(&msg, serv8800, clnt3300)
 	}
 }
 
