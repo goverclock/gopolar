@@ -1,26 +1,36 @@
 package core
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"os"
 	"time"
 )
 
+var homeDir string
+
 type ConnLogger struct {
-	send *log.Logger
-	recv *log.Logger
+	sendf *os.File
+	recvf *os.File
+}
+
+// remove all existing logs when gpcore starts
+func init() {
+	hd, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalln("fail to read $HOME dir: ", err)
+	}
+	homeDir = hd
+	os.RemoveAll(fmt.Sprintf("%v/.config/gopolar/logs", homeDir))
 }
 
 // log file at ~/.config/gopolar/logs/
 func NewConnLogger(source string, dest string) *ConnLogger {
 	current := time.Now()
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalln("fail to read $HOME dir: ", err)
-	}
 	logDir := fmt.Sprintf("%v/.config/gopolar/logs/%v-%v/", homeDir, source, dest)
+	os.MkdirAll(logDir, 0700)
 
 	sendLogName := fmt.Sprintf("%v-send", current.Format("2006-01-02 15:04:05.000000"))
 	recvLogName := fmt.Sprintf("%v-recv", current.Format("2006-01-02 15:04:05.000000"))
@@ -35,17 +45,23 @@ func NewConnLogger(source string, dest string) *ConnLogger {
 	}
 
 	return &ConnLogger{
-		send: log.New(sendLogFile, "", 0),
-		recv: log.New(recvLogFile, "", 0),
+		sendf: sendLogFile,
+		recvf: recvLogFile,
 	}
 }
 
 func (cl *ConnLogger) LogSend(b []byte) {
 	// TODO: if !doLog { return }
-	cl.send.Print(b) // TODO: should output raw bytes
+	err := binary.Write(cl.sendf, binary.LittleEndian, b)
+	if err != nil {
+		log.Fatal("[logger] LogSend fail")
+	}
 }
 
 func (cl *ConnLogger) LogRecv(b []byte) {
 	// TODO: if !doLog { return }
-	cl.recv.Print(b) // TODO: should output raw bytes
+	err := binary.Write(cl.recvf, binary.LittleEndian, b)
+	if err != nil {
+		log.Fatal("[logger] LogRecv fail")
+	}
 }

@@ -15,6 +15,7 @@ type Forwarder struct {
 	src         net.Listener
 	dest        []string                           // only for new connection to src to set up
 	connections map[*net.Conn]map[string]*net.Conn // map[connSrc]map[dest]connDest
+	connLoggers map[*net.Conn]map[string]*ConnLogger
 
 	quit bool
 	mu   sync.Mutex
@@ -29,6 +30,7 @@ func NewForwarder(source netip.AddrPort) (*Forwarder, error) {
 	fwd := &Forwarder{
 		src:         src,
 		connections: make(map[*net.Conn]map[string]*net.Conn),
+		connLoggers: make(map[*net.Conn]map[string]*ConnLogger),
 	}
 	go fwd.listen()
 	go fwd.copyRoutine()
@@ -49,6 +51,7 @@ func (fwd *Forwarder) Add(d string) {
 			Debugf("[forward] fail to dial dest=%v for src=%v, err=%v\n", d, fwd.src.Addr(), err)
 		}
 		fwd.connections[cs][d] = &connD
+		fwd.connLoggers[cs][d] = NewConnLogger(fwd.src.Addr().String(), d)
 		Debugf("[forward] added dest=%v for src=%v\n", d, (*cs).RemoteAddr())
 	}
 }
@@ -72,6 +75,7 @@ func (fwd *Forwarder) Remove(d string) bool {
 		if fwd.connections[cs][d] != nil {
 			(*fwd.connections[cs][d]).Close() // this should stops io.Copy
 			delete(fwd.connections[cs], d)
+			delete(fwd.connLoggers[cs], d)
 			Debugf("[forward] ended existing connection: dest=%v for src=%v\n", d, fwd.src.Addr())
 		}
 	}
@@ -109,6 +113,7 @@ func (fwd *Forwarder) listen() {
 
 		fwd.mu.Lock()
 		fwd.connections[&connS] = make(map[string]*net.Conn)
+		fwd.connLoggers[&connS] = make(map[string]*ConnLogger)
 		established := false
 		for _, d := range fwd.dest { // dial all dest for connS
 			connD, err := net.Dial("tcp", d)
@@ -118,6 +123,7 @@ func (fwd *Forwarder) listen() {
 			}
 			Debugf("[forward] src=%v dialed %v\n", src.Addr(), d)
 			fwd.connections[&connS][d] = &connD
+			fwd.connLoggers[&connS][d] = NewConnLogger(fwd.src.Addr().String(), d)
 			established = true
 		}
 		if !established {
@@ -139,8 +145,9 @@ func (fwd *Forwarder) copyRoutine() {
 			(*connS).SetReadDeadline(time.Now().Add(time.Microsecond)) // TODO: doc this in paper, see https://github.com/golang/go/issues/36973
 			nr, err := (*connS).Read(buf)
 			if nr != 0 {
-				for _, connD := range mde {
+				for d, connD := range mde {
 					(*connD).Write(buf[0:nr])
+					fwd.connLoggers[connS][d].LogSend(buf[0:nr])
 				}
 			}
 			if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) { // connS is down
@@ -150,9 +157,12 @@ func (fwd *Forwarder) copyRoutine() {
 
 			// read many connD, write connS
 			totNr := 0
-			for _, connD := range mde {
+			for d, connD := range mde {
 				(*connD).SetReadDeadline(time.Now().Add(time.Microsecond))
 				nr, _ := (*connD).Read(buf[totNr:]) // ignore errors from connD
+				if nr != 0 {
+					fwd.connLoggers[connS][d].LogRecv(buf[totNr : totNr+nr])
+				}
 				// Debugf("[forward] read %v bytes from dest=%v, err=%v", nr, dest, err)
 				totNr += nr
 			}
@@ -170,6 +180,7 @@ func (fwd *Forwarder) copyRoutine() {
 				(*connD).Close()
 			}
 			delete(fwd.connections, ccs)
+			delete(fwd.connLoggers, ccs)
 		}
 
 		if fwd.quit {

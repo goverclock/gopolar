@@ -19,16 +19,12 @@ func NewConfig() *Config {
 	ret := &Config{}
 
 	// (create and) read config file
-	cfgDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalln("fail to read $HOME dir: ", err)
-	}
-	cfgDir += "/.config/gopolar/"
+	cfgDir := homeDir + "/.config/gopolar/"
 	cfgPath := cfgDir + "gopolar.toml"
 	ret.filePath = cfgPath
 	viper.SetConfigName("gopolar")
 	viper.AddConfigPath(cfgDir)
-	if err = viper.ReadInConfig(); err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok { // config file not found, create it and try again
 			err = os.MkdirAll(cfgDir, 0700)
 			if err != nil {
