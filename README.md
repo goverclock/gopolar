@@ -2,7 +2,7 @@
 
 ![gopolar](./gopolar.png)
 
-TCP port forwarding tool with both TUI and Web UI support.
+TCP port forwarding tool with both TUI and web UI support.
 
 > The [gopher image](https://go.dev/blog/gopher) is [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) licensed, credit to Renee French.
 
@@ -10,15 +10,29 @@ TCP port forwarding tool with both TUI and Web UI support.
 
 Simply `go install github.com/goverclock/gopolar/cmd/...@latest` would install gopolar core & TUI, which is enough for basic usage.
 
-The Web UI has to be built with [ install.sh ](./install.sh). [ Vite ](https://vitejs.dev/) is required to build the UI.
+The web UI has to be built with [ install.sh ](./install.sh). [ Vite ](https://vitejs.dev/) is required to build the UI.
 
 # Usage
 
-After install, run `gpcore` in terminal. In another window run `gptui` to start TUI, which is used to interact with the core.
+### Basic
 
-If the Web UI is installed, visit `localhost:7070`. The Web UI offers exactly same functionality with TUI.
+After install, run `gpcore` to start gopolar core process. In another window run `gptui` to start TUI and interact with the core.
 
-You may want to [ create a system service ](https://medium.com/@benmorel/creating-a-linux-service-with-systemd-611b5c8b91d6)for gpcore if you are using systemd.
+If the web UI is installed, visit `localhost:7070` in a browser. The web UI offers same functionality with TUI.
+
+With the web UI/TUI, you can create, edit, toggle and delete tunnels and inspect their status.
+
+> You may want to [ create a system service ](https://medium.com/@benmorel/creating-a-linux-service-with-systemd-611b5c8b91d6)for gpcore if you are using systemd.
+
+### Saved Tunnels
+
+gopolar saves tunnels in `~/.config/gopolar/gopolar.toml`.
+
+### Logs
+
+**On each startup, gopolar deletes all previous logs.** Copy them to another directory if you want to persist them.
+
+gopolar saves logs in `~/.config/gopolar/logs/[tunnel source]-[tunnel dest]/`, containing raw data sent and received for each connection in that tunnel. You may want to read them with a hex reader like `xxd`.
 
 # RESTful API
 
