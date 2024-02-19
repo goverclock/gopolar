@@ -22,10 +22,10 @@ func init() {
 		log.Fatalln("fail to read $HOME dir: ", err)
 	}
 	homeDir = hd
-	os.RemoveAll(fmt.Sprintf("%v/.config/gopolar/logs", homeDir))
+	os.RemoveAll(fmt.Sprintf("%v/.gopolar/logs", homeDir))
 }
 
-// log file at ~/.config/gopolar/logs/
+// log file at ~/.gopolar/logs/
 func NewConnLogger(source string, dest string) *ConnLogger {
 	if !config.DoLogs {
 		return &ConnLogger{
@@ -36,7 +36,7 @@ func NewConnLogger(source string, dest string) *ConnLogger {
 
 	current := time.Now()
 
-	logDir := fmt.Sprintf("%v/.config/gopolar/logs/%v-%v/", homeDir, source, dest)
+	logDir := fmt.Sprintf("%v/.gopolar/logs/%v-%v/", homeDir, source, dest)
 	os.MkdirAll(logDir, 0700)
 
 	sendLogName := fmt.Sprintf("%v-send", current.Format("2006-01-02 15:04:05.000000"))

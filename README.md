@@ -26,7 +26,7 @@ With the web UI/TUI, you can create, edit, toggle and delete tunnels and inspect
 
 ### Saved Tunnels
 
-gopolar saves tunnels in `~/.config/gopolar/tunnels.toml`, and restore them after `gpcore` starts. If you want to ignore them, run `gpcore -nosave`.
+gopolar saves tunnels in `~/.gopolar/tunnels.toml`, and restore them after `gpcore` starts. If you want to ignore them, run `gpcore -nosave`.
 
 ### Logs
 
@@ -34,7 +34,7 @@ gopolar saves tunnels in `~/.config/gopolar/tunnels.toml`, and restore them afte
 
 gopolar does not do logging by default in consideration of performance. Run `gpcore -log` to enable logging.
 
-Logs are saved at `~/.config/gopolar/logs/[tunnel source]-[tunnel dest]/[connection establish time]-[send | recv]`, containing raw data sent and received for each connection in that tunnel. You may want to read them with a hex reader like `xxd` e.g. `cat logs/\[::\]:2222-localhost:7070/2024-02-18\ 09:54:10.727005-send | xxd`.
+Logs are saved at `~/.gopolar/logs/[tunnel source]-[tunnel dest]/[connection establish time]-[send | recv]`, containing raw data sent and received for each connection in that tunnel. You may want to read them with a hex reader like `xxd` e.g. `cat logs/\[::\]:2222-localhost:7070/2024-02-18\ 09:54:10.727005-send | xxd`.
 
 # RESTful API
 
