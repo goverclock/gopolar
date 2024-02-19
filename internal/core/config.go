@@ -18,12 +18,12 @@ var DefaultConfig Config = Config{
 	ReadSaved: true,
 }
 
-// read tunnels from $HOME/.config/gopolar/gopolar.toml
+// read tunnels from $HOME/.config/gopolar/tunnels.toml
 // create it if not exist
 func readTunnels() []Tunnel {
 	cfgDir := homeDir + "/.config/gopolar/"
-	cfgPath := cfgDir + "gopolar.toml"
-	viper.SetConfigName("gopolar")
+	cfgPath := cfgDir + "tunnels.toml"
+	viper.SetConfigName("tunnels")
 	viper.AddConfigPath(cfgDir)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok { // config file not found, create it and try again

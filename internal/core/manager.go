@@ -61,7 +61,7 @@ func (tm *TunnelManager) Run() {
 }
 
 // tm.mu must be held,
-// save current tunnel list to gopolar.toml
+// save current tunnel list to tunnels.toml
 func (tm *TunnelManager) saveL() {
 	if !config.ReadSaved { // avoid truncating
 		return

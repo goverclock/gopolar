@@ -26,7 +26,7 @@ With the web UI/TUI, you can create, edit, toggle and delete tunnels and inspect
 
 ### Saved Tunnels
 
-gopolar saves tunnels in `~/.config/gopolar/gopolar.toml`, and restore them after `gpcore` starts. If you want to ignore them, run `gpcore -nosave`.
+gopolar saves tunnels in `~/.config/gopolar/tunnels.toml`, and restore them after `gpcore` starts. If you want to ignore them, run `gpcore -nosave`.
 
 ### Logs
 
