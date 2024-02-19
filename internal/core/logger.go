@@ -27,6 +27,13 @@ func init() {
 
 // log file at ~/.config/gopolar/logs/
 func NewConnLogger(source string, dest string) *ConnLogger {
+	if !config.DoLogs {
+		return &ConnLogger{
+			sendf: nil,
+			recvf: nil,
+		}
+	}
+
 	current := time.Now()
 
 	logDir := fmt.Sprintf("%v/.config/gopolar/logs/%v-%v/", homeDir, source, dest)
@@ -51,7 +58,9 @@ func NewConnLogger(source string, dest string) *ConnLogger {
 }
 
 func (cl *ConnLogger) LogSend(b []byte) {
-	// TODO: if !doLog { return }
+	if !config.DoLogs {
+		return
+	}
 	err := binary.Write(cl.sendf, binary.LittleEndian, b)
 	if err != nil {
 		log.Fatal("[logger] LogSend fail")
@@ -59,7 +68,9 @@ func (cl *ConnLogger) LogSend(b []byte) {
 }
 
 func (cl *ConnLogger) LogRecv(b []byte) {
-	// TODO: if !doLog { return }
+	if !config.DoLogs {
+		return
+	}
 	err := binary.Write(cl.recvf, binary.LittleEndian, b)
 	if err != nil {
 		log.Fatal("[logger] LogRecv fail")

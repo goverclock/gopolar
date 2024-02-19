@@ -9,19 +9,20 @@ import (
 )
 
 type Config struct {
-	filePath string
-	tunnels  []Tunnel
+	DoLogs    bool
+	ReadSaved bool
 }
 
-// read config from $HOME/.config/gopolar/gopolar.toml
-// create config file if not exist
-func NewConfig() *Config {
-	ret := &Config{}
+var DefaultConfig Config = Config{
+	DoLogs:    false,
+	ReadSaved: true,
+}
 
-	// (create and) read config file
+// read tunnels from $HOME/.config/gopolar/gopolar.toml
+// create it if not exist
+func readTunnels() []Tunnel {
 	cfgDir := homeDir + "/.config/gopolar/"
 	cfgPath := cfgDir + "gopolar.toml"
-	ret.filePath = cfgPath
 	viper.SetConfigName("gopolar")
 	viper.AddConfigPath(cfgDir)
 	if err := viper.ReadInConfig(); err != nil {
@@ -35,7 +36,7 @@ func NewConfig() *Config {
 			if err != nil {
 				log.Fatalln("fail to create config file:", err)
 			}
-			return NewConfig()
+			return nil
 		} else {
 			log.Fatalln("fail to read config file:", err)
 		}
@@ -43,6 +44,7 @@ func NewConfig() *Config {
 
 	// read tunnels from config file
 	ts, ok := viper.Get("tunnels").([]interface{})
+	ret := []Tunnel{}
 	if ok {
 		for _, t := range ts {
 			ti := t.(map[string]interface{})
@@ -50,9 +52,10 @@ func NewConfig() *Config {
 			if err := mapstructure.Decode(ti, &res); err != nil {
 				log.Fatal("fail to parse config file:", err)
 			}
-			ret.tunnels = append(ret.tunnels, res)
+			ret = append(ret, res)
 		}
 	} // else ts is nil
 
 	return ret
+
 }

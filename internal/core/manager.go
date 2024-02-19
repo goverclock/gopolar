@@ -13,34 +13,35 @@ import (
 	"github.com/spf13/viper"
 )
 
+var config Config
+
 type TunnelManager struct {
 	tunnels   map[uint64]*Tunnel            // ID -> source
 	forwarder map[netip.AddrPort]*Forwarder // source -> forwarder, only maintains running tunnels
 	router    *gin.Engine
-	cfg       *Config
 
 	mu sync.Mutex
 }
 
 // init tunnels from config file, exit if any error occurs
-func NewTunnelManager(readConfig bool) *TunnelManager {
+func NewTunnelManager(cfg Config) *TunnelManager {
 	log.SetFlags(0)
+	config = cfg
 
-	ret := &TunnelManager{
+	tm := &TunnelManager{
 		tunnels:   make(map[uint64]*Tunnel),
 		forwarder: make(map[netip.AddrPort]*Forwarder),
 	}
-	ret.setupRouter()
+	tm.setupRouter()
 
-	if readConfig {
-		cfg := NewConfig()
-		ret.cfg = cfg
-		for _, t := range cfg.tunnels {
-			ret.AddTunnel(t)
+	if config.ReadSaved {
+		savedTunnels := readTunnels()
+		for _, t := range savedTunnels {
+			tm.AddTunnel(t)
 		}
 	}
 
-	return ret
+	return tm
 }
 
 func (tm *TunnelManager) Run() {
@@ -62,6 +63,9 @@ func (tm *TunnelManager) Run() {
 // tm.mu must be held,
 // save current tunnel list to gopolar.toml
 func (tm *TunnelManager) saveL() {
+	if !config.ReadSaved { // avoid truncating
+		return
+	}
 	viper.Set("tunnels", tunnelMapToListL(tm.tunnels))
 	viper.WriteConfig()
 }

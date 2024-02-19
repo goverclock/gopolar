@@ -10,7 +10,11 @@ import (
 var tm *core.TunnelManager
 
 func TestMain(t *testing.M) {
-	tm = core.NewTunnelManager(false)
+	testConfig := core.Config{
+		DoLogs: false,
+		ReadSaved: false,
+	}
+	tm = core.NewTunnelManager(testConfig)
 
 	os.Exit(t.Run())
 }
