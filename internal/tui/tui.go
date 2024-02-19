@@ -45,7 +45,7 @@ type UIModel struct {
 func NewUIModel(end *CLIEnd) *UIModel {
 	tunnelList, err := end.GetTunnelList()
 	if err != nil {
-		log.Println("fail to get tunnel list, is gopolar daemon running?")
+		log.Println("fail to get tunnel list, is gpcore running?")
 		os.Exit(1)
 	}
 	ret := &UIModel{
@@ -69,7 +69,7 @@ func tickCmd() tea.Cmd {
 func (m *UIModel) updateListCmd() tea.Msg {
 	newTunnels, err := m.end.GetTunnelList()
 	if err != nil {
-		log.Println("fail to get tunnel list, is gopolar daemon running?")
+		log.Println("fail to get tunnel list, is gpcore running?")
 		os.Exit(1)
 	}
 	return newTunnels
