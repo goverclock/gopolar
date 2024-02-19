@@ -24,7 +24,7 @@ func NewEchoServer(port uint64, prefix string) *EchoServer {
 	p := ":" + fmt.Sprint(port)
 	listener, err := net.Listen("tcp", p)
 	ret := &EchoServer{
-		Name:     "[server" + p + "] ",
+		Name:     "[e-serv" + p + "] ",
 		listener: listener,
 		Prefix:   prefix,
 	}

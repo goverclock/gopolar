@@ -24,7 +24,7 @@ type EchoClient struct {
 func NewEchoClient(port uint64) *EchoClient {
 	p := ":" + fmt.Sprint(port)
 	ret := &EchoClient{
-		Name: "[client" + p + "] ",
+		Name: "[clnt" + p + "] ",
 		Port: port,
 	}
 	return ret
@@ -70,14 +70,17 @@ func (ec *EchoClient) Send(msg string) error {
 		panic(ec.Name + "trying to Send() without new line")
 	}
 	if ec.conn == nil {
-		panic(ec.Name + "trying to Send() without connection")
+		return fmt.Errorf(ec.Name + "trying to Send() without connection")
 	}
 	nw, err := ec.conn.Write([]byte(msg))
+	if err != nil {
+		return err
+	}
 	if nw != len(msg) {
 		return fmt.Errorf("partial write: %v", err)
 	}
-	core.Debugln(ec.Name + "send: " + msg)
-	return err
+	core.Debugln(ec.Name + "sent: " + msg)
+	return nil
 }
 
 // read until new line or EOF

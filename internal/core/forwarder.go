@@ -141,6 +141,35 @@ func (fwd *Forwarder) copyRoutine() {
 
 		closedConnS := []*net.Conn{}
 		for connS, mde := range fwd.connections {
+			// read many connD, write connS
+			shouldCloseConnS := false
+			totNr := 0
+			for d, connD := range mde {
+				(*connD).SetReadDeadline(time.Now().Add(time.Microsecond))
+				nr, err := (*connD).Read(buf[totNr:])
+				if nr != 0 {
+					fwd.connLoggers[connS][d].LogRecv(buf[totNr : totNr+nr])
+				}
+				// Debugf("[forward] read %v bytes from dest=%v, err=%v", nr, dest, err)
+				totNr += nr
+				if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) { // connD is down
+					(*connD).Close()
+					Debugf("[forward] connD closed for dest=%v", (*connD).RemoteAddr().String())
+					delete(fwd.connections[connS], d)
+					if len(fwd.connections[connS]) == 0 {
+						shouldCloseConnS = true // if all connD is down, just close connS
+					}
+				}
+			}
+			if shouldCloseConnS {
+				closedConnS = append(closedConnS, connS)
+				continue
+			}
+			if totNr != 0 {
+				(*connS).Write(buf[:totNr])
+				// Debugf("[forward] write %v bytes to src=%v, err=%v", nw, fwd.src.Addr(), err)
+			}
+
 			// read connS, write to many connD
 			(*connS).SetReadDeadline(time.Now().Add(time.Microsecond)) // TODO: doc this in paper, see https://github.com/golang/go/issues/36973
 			nr, err := (*connS).Read(buf)
@@ -153,22 +182,6 @@ func (fwd *Forwarder) copyRoutine() {
 			if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) { // connS is down
 				closedConnS = append(closedConnS, connS)
 				continue
-			}
-
-			// read many connD, write connS
-			totNr := 0
-			for d, connD := range mde {
-				(*connD).SetReadDeadline(time.Now().Add(time.Microsecond))
-				nr, _ := (*connD).Read(buf[totNr:]) // ignore errors from connD
-				if nr != 0 {
-					fwd.connLoggers[connS][d].LogRecv(buf[totNr : totNr+nr])
-				}
-				// Debugf("[forward] read %v bytes from dest=%v, err=%v", nr, dest, err)
-				totNr += nr
-			}
-			if totNr != 0 {
-				_, _ = (*connS).Write(buf[:totNr])
-				// Debugf("[forward] write %v bytes to src=%v, err=%v", nw, fwd.src.Addr(), err)
 			}
 		}
 

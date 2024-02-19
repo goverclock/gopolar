@@ -165,4 +165,24 @@ func TestDisconnect(t *testing.T) {
 	assert.False(clnt3300.IsConnected())
 }
 
-// TODO(pending): TestSilentServer, server always close connections immediately
+// if server closes connection, client should note it
+func TestSilentServer(t *testing.T) {
+	assert := assert.New(t)
+	clear()
+
+	_, err := tm.AddTunnel(core.Tunnel{
+		Name:   "3300to8800silent",
+		Enable: true,
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
+	})
+	assert.Nil(err)
+
+	sserv8800 := testutil.NewSilentServer(8800)
+	defer sserv8800.Quit()
+
+	clnt3300 := testutil.NewEchoClient(3300)
+	assert.Nil(clnt3300.Connect())
+	// the server disconnects immediately
+	assert.False(clnt3300.IsConnected())
+}
