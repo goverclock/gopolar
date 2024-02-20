@@ -176,13 +176,16 @@ func (tm *TunnelManager) ChangeTunnel(id uint64, newName string, newSource strin
 
 	t.Name = newName
 	if t.Source != newSource || t.Dest != newDest {
-		// need to update forwarder, by removing old & adding new
-		tm.removeForwardL(t.MustParseSource(), t.Dest)
+		if t.Enable {
+			tm.removeForwardL(t.MustParseSource(), t.Dest)
+		}
 		t.Source = newSource
 		t.Dest = newDest
-		err := tm.addForwardL(t.MustParseSource(), newDest)
-		if err != nil {
-			return err
+		if t.Enable {
+			err := tm.addForwardL(t.MustParseSource(), newDest)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
