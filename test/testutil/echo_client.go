@@ -15,7 +15,6 @@ type EchoClient struct {
 	Name    string
 	Port    uint64
 	TotRecv uint64
-	TotSend uint64
 
 	conn       net.Conn // for send only, do not read conn, read lineReader
 	lineReader *bufio.Reader

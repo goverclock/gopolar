@@ -186,3 +186,80 @@ func TestSilentServer(t *testing.T) {
 	// the server disconnects immediately
 	assert.False(clnt3300.IsConnected())
 }
+
+// TunnelManager should return error when creating a tunnel
+// with (source, dest) same with existing tunnel
+func TestDenyDuplicateTunnel(t *testing.T) {
+	assert := assert.New(t)
+	clear()
+
+	tn := core.Tunnel{
+		Name:   "3300to8800",
+		Enable: true,
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
+	}
+	_, err := tm.AddTunnel(tn)
+	assert.Nil(err)
+
+	tn.Name = "haha"
+	_, err = tm.AddTunnel(tn)
+	assert.NotNil(err)
+}
+
+// should dial a new dest for existing connection when a new tunnel with
+// existing source is created
+func TestCreateTunnelOnline(t *testing.T) {
+	assert := assert.New(t)
+	clear()
+
+	tn1 := core.Tunnel{
+		Name:   "3300to8800",
+		Enable: true,
+		Source: "localhost:3300",
+		Dest:   "localhost:8800",
+	}
+	_, err := tm.AddTunnel(tn1)
+	assert.Nil(err)
+
+	prefix1 := "hello"
+	serv8800 := testutil.NewEchoServer(8800, prefix1)
+	defer serv8800.Quit()
+	prefix2 := "bye"
+	serv9900 := testutil.NewEchoServer(9900, prefix2)
+	defer serv9900.Quit()
+
+	clnt3300 := testutil.NewEchoClient(3300)
+	err = clnt3300.Connect()
+	assert.Nil(err)
+
+	// one2one validate
+	msg := "asdfg\n"
+	err = clnt3300.Send(msg)
+	assert.Nil(err)
+	reply := clnt3300.Recv()
+	assert.Equal(prefix1+msg, reply)
+
+	// new dest
+	tn2 := core.Tunnel{
+		Name:   "3300to9900",
+		Enable: true,
+		Source: "localhost:3300",
+		Dest:   "localhost:9900",
+	}
+	_, err = tm.AddTunnel(tn2)
+	assert.Nil(err)
+
+	// one2many validate
+	clnt3300.TotRecv = 0
+	serv8800.TotEcho = 0
+
+	msg = "ashortmessage\n"
+	err = clnt3300.Send(msg)
+	assert.Nil(err)
+	clnt3300.Recv()
+	clnt3300.Recv()
+
+	// t.Logf("clnt3300-%v serv8800-%v serv9900-%v\n", clnt3300.TotRecv, serv8800.TotEcho, serv9900.TotEcho)
+	assert.Equal(clnt3300.TotRecv, serv8800.TotEcho+serv9900.TotEcho)
+}
