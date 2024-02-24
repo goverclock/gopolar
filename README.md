@@ -26,100 +26,26 @@ With the web UI/TUI, you can create, edit, toggle and delete tunnels and inspect
 
 ### Saved Tunnels
 
-gopolar saves tunnels in `~/.gopolar/tunnels.toml`, and restore them after `gpcore` starts. If you want to ignore them, run `gpcore -nosave`.
+gopolar saves tunnels in `~/.gopolar/tunnels.toml`, and restore them after `gpcore` starts. If you want to ignore them, run `gpcore` with `-nosave` flag.
 
 ### Logs
 
 **On startup, gopolar deletes all previous logs.** Copy them to another directory if you want to persist them.
 
-gopolar does not do logging by default in consideration of performance. Run `gpcore -log` to enable logging.
+gopolar does not do logging by default in consideration of performance. Run `gpcore` with `-log` flag to enable logging.
 
 Logs are saved at `~/.gopolar/logs/[tunnel source]-[tunnel dest]/[connection establish time]-[send | recv]`, containing raw data sent and received for each connection in that tunnel. You may want to read them with a hex reader like `xxd` e.g. `cat logs/\[::\]:2222-localhost:7070/2024-02-18\ 09:54:10.727005-send | xxd`.
 
 # RESTful API
 
-You can also integrate gopolar easily with its RESTful API.
+You can also integrate gopolar easily with its RESTful API. Check out [API.md](./API.md).
 
-### Types
+# Screenshots
 
-```
-type Tunnel struct {
-    id      uint64
-    name    string
-    enable  bool
-    source  string  // always localhost:xxxx
-    dest    string  // e.g. 192.168.10.1:7878
-}
-```
+TUI:
 
-### Response
+![tui](./tui.png)
 
-```
-{
-    success: true/false,
-    err_msg: "error message",
-    data: {...},
-}
-```
+Web UI:
 
-### API
-
-**GET /tunnels/list**
-
-Get all tunnels from core, sorted by tunnel ID.
-
-```
-response("data"):
-{
-    tunnels []Tunnels
-}
-```
-
-**POST /tunnels/create**
-
-Create a new tunnel.
-
-```
-body:
-{
-    name    string
-    source  string
-    dest    string
-}
-response("data"):
-{
-    id      uint64
-}
-```
-
-**POST /tunnels/edit/:id**
-
-Edit tunnel with ID.
-
-```
-body:
-{
-    name    string
-    source  string
-    dest    string
-}
-```
-
-**POST /tunnels/toggle/:id**
-
-Enable/disable tunnel with ID.
-
-**DELETE /tunnels/delete/:id**
-
-Delete tunnel with ID.
-
-**GET /about**
-
-Information about gopolar.
-
-```
-response("data"):
-{
-    version string  // e.g. 1.0.0
-}
-```
+![webui](./webui.png)
