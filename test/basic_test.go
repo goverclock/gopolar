@@ -117,22 +117,22 @@ func TestMany2One(t *testing.T) {
 // TODO(pending): forwarder need a way to detect TCP dial while not accepting it,
 // currently forwarder always accepts client dial, then close it if no,
 // dest can be reached
-func TestNoServer(t *testing.T) {
-	assert := assert.New(t)
-	clear()
+// func TestNoServer(t *testing.T) {
+// 	assert := assert.New(t)
+// 	clear()
 
-	_, err := tm.AddTunnel(core.Tunnel{
-		Name:   "dummy",
-		Enable: true,
-		Source: "localhost:3300",
-		Dest:   "localhost:8800",
-	})
-	assert.Nil(err)
+// 	_, err := tm.AddTunnel(core.Tunnel{
+// 		Name:   "dummy",
+// 		Enable: true,
+// 		Source: "localhost:3300",
+// 		Dest:   "localhost:8800",
+// 	})
+// 	assert.Nil(err)
 
-	clnt := testutil.NewEchoClient(3300)
-	// assert.NotEqual(nil, clnt.Connect())
-	clnt.Connect()
-}
+// 	clnt := testutil.NewEchoClient(3300)
+// 	assert.NotEqual(nil, clnt.Connect())
+// 	// clnt.Connect()
+// }
 
 // connection should be closed when tunnel is deleted/disabled
 func TestDisconnect(t *testing.T) {
@@ -263,3 +263,5 @@ func TestCreateTunnelOnline(t *testing.T) {
 	// t.Logf("clnt3300-%v serv8800-%v serv9900-%v\n", clnt3300.TotRecv, serv8800.TotEcho, serv9900.TotEcho)
 	assert.Equal(clnt3300.TotRecv, serv8800.TotEcho+serv9900.TotEcho)
 }
+
+// TODO(pending): TestEditDuplicated
