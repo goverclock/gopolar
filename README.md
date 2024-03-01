@@ -1,5 +1,8 @@
 # gopolar
 
+> [!CAUTION]  
+> gopolar is still a work in progress. Use at your own risk.
+
 ![gopolar](./gopolar.png)
 
 TCP port forwarding tool with both TUI and web UI support.
