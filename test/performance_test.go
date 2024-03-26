@@ -24,6 +24,15 @@ func MakeDataMB(n uint) []byte {
 	return buf
 }
 
+func MakeDataKB(n uint) []byte {
+	size := n * 1024
+	buf := make([]byte, size)
+	for i := range buf {
+		buf[i] = byte('a' + (i % 26))
+	}
+	return buf
+}
+
 func RandomString(maxLen int) string {
 	buf := make([]byte, rand.Intn(maxLen)+1)
 	for i := range buf {
@@ -104,6 +113,7 @@ func BenchmarkSingleForward100MB(b *testing.B) {
 func BenchmarkSingleForward500MB(b *testing.B) {
 	assert := assert.New(b)
 	clear()
+	b.Logf("previous tunnels removed\n")
 
 	_, err := tm.AddTunnel(core.Tunnel{
 		Name:   "tfrom 3300 to 8800",
@@ -208,4 +218,58 @@ func BenchmarkManyConnectionsForward1MB(b *testing.B) {
 
 	b.Logf("total client recv=%v, total server reply=%v", totClntRecv, totServReply)
 	assert.Equal(totClntRecv, totServReply)
+}
+
+// 500 tunnels(from [10001,10500] to [11001,11500]), 10 connections in each
+func Benchmark5000ConnectionsForward1KB(b *testing.B) {
+	assert := assert.New(b)
+	clear()
+
+	// create tunnels
+	tunnelStart := uint64(10001)
+	tunnelEnd := uint64(10500)
+	for s := tunnelStart; s <= tunnelEnd; s++ {
+		d := s + 1000
+		_, err := tm.AddTunnel(core.Tunnel{
+			Name:   fmt.Sprintf("tfrom %v to %v", s, d),
+			Enable: true,
+			Source: fmt.Sprintf("localhost:%v", s),
+			Dest:   fmt.Sprintf("localhost:%v", d),
+		})
+		assert.Nil(err)
+	}
+	list := tm.GetTunnels()
+	b.Logf("%v tunnels created\n", len(list))
+
+	// create 500 servers in [11001,11500]
+	serverStart := uint64(11001)
+	serverEnd := uint64(11500)
+	servs := []*testutil.EchoServer{}
+	for i := serverStart; i <= serverEnd; i++ {
+		s := testutil.NewEchoServer(i, RandomString(20))
+		servs = append(servs, s)
+		defer s.Quit()
+	}
+	b.Logf("%v servers created", len(servs))
+
+	// create 5000 clients
+	clnts := []*testutil.EchoClient{}
+	data := string(MakeDataKB(1))
+	msg := fmt.Sprintf("data from client: %v\n", data)
+	var wg sync.WaitGroup
+	for i := tunnelStart; i <= tunnelEnd; i++ {
+		for j := 0; j < 10; j++ {
+			wg.Add(1)
+			c := testutil.NewEchoClient(i)
+			clnts = append(clnts, c)
+			go func() {
+				assert.Nil(c.Connect())
+				assert.Nil(c.Send(msg))
+				c.Recv()
+				wg.Done()
+			}()
+		}
+	}
+	b.Logf("%v clients created", len(clnts))
+	wg.Wait()
 }
