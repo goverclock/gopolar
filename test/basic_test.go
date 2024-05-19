@@ -2,6 +2,7 @@ package gopolar_test
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/goverclock/gopolar/internal/core"
@@ -91,9 +92,10 @@ func TestMany2One(t *testing.T) {
 	defer serv3300.Quit()
 
 	start := 8800
-	end := 100
+	end := 8900
+
+	// tunnels
 	for i := uint64(start); i <= uint64(end); i++ {
-		// tunnels
 		p := fmt.Sprint(i)
 		tn := core.Tunnel{
 			Name:   fmt.Sprintf("tfrom %v to 3300", i),
@@ -103,14 +105,25 @@ func TestMany2One(t *testing.T) {
 		}
 		_, err := tm.AddTunnel(tn)
 		assert.Nil(err)
-
-		// clients
-		msg := fmt.Sprintf("hahaha message from client %v\n", i)
-		c := testutil.NewEchoClient(i)
-		assert.Nil(c.Connect())
-		assert.Nil(c.Send(msg))
-		assert.Equal(prefix+msg, c.Recv())
 	}
+
+	// clients
+	wg := sync.WaitGroup{}
+	for i := uint64(start); i <= uint64(end); i++ {
+		i := i
+		wg.Add(1)
+		go func() {
+			msg := fmt.Sprintf("hahaha message from client %v\n", i)
+			c := testutil.NewEchoClient(i)
+			assert.Nil(c.Connect())
+			assert.Nil(c.Send(msg))
+			assert.Equal(prefix+msg, c.Recv())
+			c.Disconnect()
+			// fmt.Println("ok", i)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 }
 
 // client should fail to connect when no server is running
@@ -263,5 +276,3 @@ func TestCreateTunnelOnline(t *testing.T) {
 	// t.Logf("clnt3300-%v serv8800-%v serv9900-%v\n", clnt3300.TotRecv, serv8800.TotEcho, serv9900.TotEcho)
 	assert.Equal(clnt3300.TotRecv, serv8800.TotEcho+serv9900.TotEcho)
 }
-
-// TODO(pending): TestEditDuplicated
